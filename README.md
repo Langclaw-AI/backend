@@ -324,6 +324,65 @@ npm install
 npm run dev
 ```
 
+## OpenClaw CLI Setup
+
+SignalGraph can run without OpenClaw because every agent step has a deterministic fallback. For the hackathon demo, install and verify OpenClaw so the Planner, Trend Scorer, Evidence Packager, Verifier, and Final Conclusion steps can run through `openclaw agent --json`.
+
+Install OpenClaw on macOS, Linux, or WSL2:
+
+```bash
+curl -fsSL https://openclaw.ai/install.sh | bash
+```
+
+Run onboarding and start the Gateway:
+
+```bash
+openclaw onboard --install-daemon
+```
+
+Verify the CLI and Gateway:
+
+```bash
+openclaw --version
+openclaw doctor
+openclaw gateway status
+```
+
+Run a JSON smoke test:
+
+```bash
+openclaw agent \
+  --session-id signalgraph-readme-smoke \
+  --message "Return JSON only: {\"ok\":true,\"summary\":\"OpenClaw is ready\"}" \
+  --thinking low \
+  --timeout 60 \
+  --json
+```
+
+If the command prints valid JSON, SignalGraph can call OpenClaw from the Next.js API route.
+
+Use these environment values in `.env.local`:
+
+```bash
+OPENCLAW_ENABLED=true
+OPENCLAW_CLI_PATH=openclaw
+OPENCLAW_WORKFLOW_ENABLED=true
+OPENCLAW_STEP_TIMEOUT_SECONDS=60
+OPENCLAW_AI_SYNTHESIS=true
+OPENCLAW_AGENT_SESSION_ID=signalgraph-final-answer
+OPENCLAW_AGENT_TIMEOUT_SECONDS=90
+OPENCLAW_AGENT_THINKING=low
+OPENCLAW_MODEL=
+```
+
+`OPENCLAW_MODEL` is optional. Leave it empty to use the model configured in OpenClaw. Set it only when you want SignalGraph to force a specific OpenClaw model for agent steps.
+
+More detail:
+
+- OpenClaw install docs: https://docs.openclaw.ai/install
+- OpenClaw getting started: https://docs.openclaw.ai/start/getting-started
+- Project skill workspace: `openclaw/skills`
+
 ## Environment Variables
 
 ```bash
