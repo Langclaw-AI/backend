@@ -1,3 +1,5 @@
+import type { UsageMeter } from "../usage-pricing";
+
 export type SourceType =
   | "x_post"
   | "github_repo"
@@ -287,5 +289,6 @@ export type ModelUsageReceipt = {
   balanceAfter: string;
   costSource: "router-trace" | "token-estimate" | "reserved-estimate";
   totalCostNeuron?: string;
+  meter: UsageMeter;
   status: "charged" | "estimated" | "refunded" | "failed_after_charge";
 };

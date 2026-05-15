@@ -135,11 +135,17 @@ export async function handleZeroGChatCompletions(request: Request) {
       chatParameters,
       chatReservedKeys
     );
-    reservation = await reserveResearchUsage(readWallet(body), {
-      estimatedCompletionTokens: readPositiveNumber(body.max_tokens),
-      model,
-      service: "chat",
-    });
+    reservation = await reserveResearchUsage(
+      {
+        request,
+        wallet: readWallet(body),
+      },
+      {
+        estimatedCompletionTokens: readPositiveNumber(body.max_tokens),
+        model,
+        service: "chat",
+      }
+    );
     const payload = {
       ...parameters,
       messages,
@@ -222,11 +228,17 @@ export async function handleZeroGImageGeneration(request: Request) {
       imageParameters,
       imageReservedKeys
     );
-    reservation = await reserveResearchUsage(readWallet(body), {
-      imageCount,
-      model,
-      service: "image",
-    });
+    reservation = await reserveResearchUsage(
+      {
+        request,
+        wallet: readWallet(body),
+      },
+      {
+        imageCount,
+        model,
+        service: "image",
+      }
+    );
     const result = await generateImage(
       {
         ...parameters,
@@ -306,11 +318,17 @@ export async function handleZeroGAsyncImageGeneration(request: Request) {
       imageParameters,
       imageReservedKeys
     );
-    reservation = await reserveResearchUsage(readWallet(body), {
-      imageCount,
-      model,
-      service: "image",
-    });
+    reservation = await reserveResearchUsage(
+      {
+        request,
+        wallet: readWallet(body),
+      },
+      {
+        imageCount,
+        model,
+        service: "image",
+      }
+    );
     const result = await submitAsyncImageGeneration(
       {
         ...parameters,
@@ -363,7 +381,13 @@ export async function handleZeroGAsyncJob(request: Request) {
 
   try {
     const wallet = readWalletHeaders(request);
-    reservation = await readUsageReservation(wallet, reservationId);
+    reservation = await readUsageReservation(
+      {
+        request,
+        wallet,
+      },
+      reservationId
+    );
     const result = await readAsyncJob({
       jobId,
       model: url.searchParams.get("model") || undefined,
@@ -449,10 +473,16 @@ export async function handleZeroGAudioTranscription(request: Request) {
       audioParameters,
       audioReservedKeys
     );
-    reservation = await reserveResearchUsage(wallet, {
-      model,
-      service: "audio",
-    });
+    reservation = await reserveResearchUsage(
+      {
+        request,
+        wallet,
+      },
+      {
+        model,
+        service: "audio",
+      }
+    );
     const formData = new FormData();
     formData.set("file", file);
     formData.set("model", model);

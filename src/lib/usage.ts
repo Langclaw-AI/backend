@@ -13,14 +13,13 @@ import {
 } from "viem";
 
 import {
-  verifyWalletSession,
-  type VerifiedWallet,
-  type WalletAuthInput,
-} from "./server/wallet-auth";
-import {
-  getSupabaseAdmin,
-  getSupabaseConfigStatus,
-} from "./supabase/server";
+  AccountAuthError,
+  requireAccountAuth,
+  requireWalletAccount,
+  type AccountAuthInput,
+} from "./server/account-auth";
+import type { WalletAuthInput } from "./server/wallet-auth";
+import { getSupabaseAdmin } from "./supabase/server";
 import type {
   ModelUsageReceipt,
   ZeroGComputeStatus,
@@ -35,6 +34,7 @@ import {
 } from "./zero-g/router";
 import {
   applyMarkupNeuron,
+  buildUsageMeter,
   calculateMarkupNeuron,
   calculateTokenCostNeuron,
   mapUiTokenUsage,
@@ -42,8 +42,8 @@ import {
   selectUsageCost,
 } from "./usage-pricing";
 
-type WalletUserRow = {
-  id: string;
+type UsageWallet = {
+  address: string;
 };
 
 type UsageAccountRow = {
@@ -121,8 +121,8 @@ export function usageErrorResponse(error: unknown) {
   );
 }
 
-export async function readUsageBalance(walletInput: WalletAuthInput) {
-  const context = await requireUsageContext(walletInput);
+export async function readUsageBalance(authInput: AccountAuthInput) {
+  const context = await requireUsageContext(authInput);
   const account = await ensureUsageAccount(context.walletUser.id, context.wallet);
   const quote = await buildUsageQuote().catch(() => undefined);
 
@@ -169,10 +169,10 @@ export async function buildUsageQuote(
 }
 
 export async function reserveResearchUsage(
-  walletInput: WalletAuthInput,
+  authInput: AccountAuthInput,
   quoteInput: UsageQuoteInput = {}
 ): Promise<UsageReservation> {
-  const context = await requireUsageContext(walletInput);
+  const context = await requireUsageContext(authInput);
   const quote = await buildUsageQuote(quoteInput);
   const reservationId = randomUUID();
   const reservedNeuron = quote.estimatedCostNeuron;
@@ -220,10 +220,10 @@ export async function reserveResearchUsage(
 }
 
 export async function readUsageReservation(
-  walletInput: WalletAuthInput,
+  authInput: AccountAuthInput,
   reservationId: string
 ): Promise<UsageReservation> {
-  const context = await requireUsageContext(walletInput);
+  const context = await requireUsageContext(authInput);
   const { data, error } = await context.supabase
     .from("langclaw_usage_reservations")
     .select(
@@ -291,6 +291,10 @@ export async function settleResearchUsage({
   const markupBps = readUsageMarkupBps();
   const markupNeuron = calculateMarkupNeuron(rawCostNeuron, markupBps);
   const chargedNeuron = applyMarkupNeuron(rawCostNeuron, markupBps);
+  const uiTokenUsage = mapUiTokenUsage({
+    ...(tokenUsage ?? {}),
+    totalTokens: tokenUsage?.totalTokens ?? (totalTokens || undefined),
+  });
 
   const { data, error } = await supabase.rpc(
     "langclaw_usage_finalize_reservation",
@@ -321,10 +325,7 @@ export async function settleResearchUsage({
     requestId: routerTrace?.requestId,
     provider: routerTrace?.provider,
     teeVerified: routerTrace?.teeVerified,
-    ...mapUiTokenUsage({
-      ...(tokenUsage ?? {}),
-      totalTokens: tokenUsage?.totalTokens ?? (totalTokens || undefined),
-    }),
+    ...uiTokenUsage,
     promptPriceNeuron: reservation.promptPriceNeuron,
     completionPriceNeuron: reservation.completionPriceNeuron,
     reservedNeuron: reservation.reservedNeuron,
@@ -337,6 +338,11 @@ export async function settleResearchUsage({
     balanceAfter: readDecimalString(row.balance_after_neuron),
     costSource: selection.costSource,
     totalCostNeuron: rawCostNeuron === "0" ? undefined : rawCostNeuron,
+    meter: buildUsageMeter({
+      model: reservation.model,
+      tokenUsage: uiTokenUsage,
+      totalConsumeNeuron: readDecimalString(row.charged_neuron),
+    }),
     status: readUsageStatus(row.status),
   };
 }
@@ -383,6 +389,10 @@ export async function refundResearchUsage(
       ? readDecimalString(row.balance_after_neuron)
       : reservation.balanceBefore,
     costSource: "reserved-estimate",
+    meter: buildUsageMeter({
+      model: reservation.model,
+      totalConsumeNeuron: "0",
+    }),
     status: "failed_after_charge",
   };
 }
@@ -396,7 +406,7 @@ export async function verifyUsageDeposit({
   txHash?: unknown;
   wallet: WalletAuthInput;
 }) {
-  const context = await requireUsageContext(walletInput);
+  const context = await requireWalletUsageContext(walletInput);
   const hash = readTxHash(txHash);
   const vaultAddress = readVaultAddress();
   const client = createUsagePublicClient();
@@ -480,7 +490,7 @@ export async function verifyUsageDeposit({
 }
 
 export async function buildWithdrawRequest(walletInput: WalletAuthInput) {
-  const context = await requireUsageContext(walletInput);
+  const context = await requireWalletUsageContext(walletInput);
   const account = await ensureUsageAccount(context.walletUser.id, context.wallet);
   const vaultAddress = readVaultAddress();
 
@@ -495,68 +505,37 @@ export async function buildWithdrawRequest(walletInput: WalletAuthInput) {
   };
 }
 
-async function requireUsageContext(walletInput: WalletAuthInput) {
-  const wallet = await verifyWalletSession(walletInput);
+async function requireUsageContext(authInput: AccountAuthInput) {
+  try {
+    const account = await requireAccountAuth(authInput);
 
-  if (!wallet) {
-    throw new UsageHttpError(401, "Wallet signature is required.");
+    return {
+      supabase: account.supabase,
+      wallet: { address: account.walletUser.walletAddress },
+      walletUser: { id: account.walletUser.id },
+    };
+  } catch (error) {
+    throw mapUsageAuthError(error);
   }
-
-  const supabase = getSupabaseAdmin();
-  const config = getSupabaseConfigStatus();
-
-  if (!supabase) {
-    throw new UsageHttpError(
-      503,
-      config.hasUrl
-        ? "SUPABASE_SERVICE_ROLE_KEY is missing."
-        : "Supabase URL and service role key are missing."
-    );
-  }
-
-  const walletUser = await upsertWalletUser(wallet);
-
-  return {
-    supabase,
-    wallet,
-    walletUser,
-  };
 }
 
-async function upsertWalletUser(wallet: VerifiedWallet) {
-  const supabase = getSupabaseAdmin();
+async function requireWalletUsageContext(walletInput: WalletAuthInput) {
+  try {
+    const account = await requireWalletAccount(walletInput);
 
-  if (!supabase) {
-    throw new UsageHttpError(503, "Supabase service role key is required.");
+    return {
+      supabase: account.supabase,
+      wallet: { address: account.walletUser.walletAddress },
+      walletUser: { id: account.walletUser.id },
+    };
+  } catch (error) {
+    throw mapUsageAuthError(error);
   }
-
-  const { data, error } = await supabase
-    .from("langclaw_wallet_users")
-    .upsert(
-      {
-        last_login_message: wallet.message,
-        last_seen_at: new Date().toISOString(),
-        last_signature: wallet.signature,
-        wallet_address: wallet.address,
-      },
-      { onConflict: "wallet_address" }
-    )
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    throw new UsageHttpError(
-      500,
-      error?.message || "Unable to sync wallet session."
-    );
-  }
-
-  return data as WalletUserRow;
 }
 
 async function ensureUsageAccount(
   walletUserId: string,
-  wallet: VerifiedWallet
+  wallet: UsageWallet
 ): Promise<UsageAccountRow> {
   const supabase = getSupabaseAdmin();
 
@@ -586,6 +565,14 @@ async function ensureUsageAccount(
   }
 
   return data as UsageAccountRow;
+}
+
+function mapUsageAuthError(error: unknown) {
+  if (error instanceof AccountAuthError) {
+    return new UsageHttpError(error.status, error.message);
+  }
+
+  return error;
 }
 
 async function readActiveModelPrice(input: UsageQuoteInput = {}) {

@@ -130,3 +130,45 @@ test("agent mode passes requested model into workflow options", () => {
   assert.equal(options.requestedModel, "agent-model");
   assert.equal(typeof options.onEvent, "function");
 });
+
+test("on-chain tool mode streams plan, calls, results, and final payload", async () => {
+  const restore = mockFetch((url) => {
+    const parsed = new URL(url);
+
+    if (parsed.hostname === "api.dexscreener.com") {
+      return jsonResponse({
+        pairs: [
+          {
+            baseToken: { symbol: "BASE" },
+            dexId: "uniswap",
+            liquidity: { usd: 100000 },
+            priceUsd: "1",
+          },
+        ],
+      });
+    }
+
+    return jsonResponse({ ok: true });
+  });
+
+  try {
+    const response = await handleChatStream(
+      new Request("http://localhost/api/chat/stream", {
+        body: JSON.stringify({
+          message: "Find trending tokens on Base",
+          toolMode: "onchain",
+        }),
+        method: "POST",
+      })
+    );
+    const events = await readNdjson(response);
+
+    assert.equal(response.status, 200);
+    assert.ok(events.some((event) => event.type === "tool_plan"));
+    assert.ok(events.some((event) => event.type === "tool_call"));
+    assert.ok(events.some((event) => event.type === "tool_result"));
+    assert.ok(events.some((event) => event.type === "tool_final"));
+  } finally {
+    restore();
+  }
+});

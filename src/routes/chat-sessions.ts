@@ -1,5 +1,9 @@
 import type { ChatSession, StoredChatMessage } from "../lib/chat-sessions";
-import { verifyWalletSession, type WalletAuthInput } from "../lib/server/wallet-auth";
+import {
+  accountAuthErrorResponse,
+  requireAccountAuth,
+} from "../lib/server/account-auth";
+import type { WalletAuthInput } from "../lib/server/wallet-auth";
 import type { Json } from "../lib/supabase/database.types";
 import {
   getSupabaseAdmin,
@@ -11,10 +15,6 @@ type ChatSessionsBody = {
   wallet?: WalletAuthInput;
   sessionId?: unknown;
   session?: unknown;
-};
-
-type WalletUserRow = {
-  id: string;
 };
 
 type ChatSessionRow = {
@@ -61,29 +61,22 @@ export async function handleChatSessions(request: Request) {
     );
   }
 
-  const wallet = await verifyWalletSession(body.wallet ?? {});
+  const account = await requireAccountAuth({
+    request,
+    wallet: body.wallet ?? {},
+  }).catch((error) => ({ error }));
 
-  if (!wallet) {
-    return Response.json(
-      { configured: true, error: "Wallet signature is required." },
-      { status: 401 }
-    );
+  if ("error" in account) {
+    return accountAuthErrorResponse(account.error, { configured: true });
   }
 
-  const walletUser = await upsertWalletUser(wallet);
-
-  if (!walletUser) {
-    return Response.json(
-      { configured: true, error: "Unable to sync wallet session." },
-      { status: 500 }
-    );
-  }
+  const walletUserId = account.walletUser.id;
 
   if (body.action === "list") {
     const { data, error } = await supabase
       .from("langclaw_chat_sessions")
       .select("id,title,pinned,created_at,updated_at")
-      .eq("wallet_user_id", walletUser.id)
+      .eq("wallet_user_id", walletUserId)
       .order("updated_at", { ascending: false })
       .limit(40);
 
@@ -112,7 +105,7 @@ export async function handleChatSessions(request: Request) {
       );
     }
 
-    const session = await readSession(walletUser.id, sessionId);
+    const session = await readSession(walletUserId, sessionId);
 
     return Response.json({
       configured: true,
@@ -132,7 +125,7 @@ export async function handleChatSessions(request: Request) {
 
     const existing = await readSessionOwner(sessionId);
 
-    if (existing && existing.wallet_user_id !== walletUser.id) {
+    if (existing && existing.wallet_user_id !== walletUserId) {
       return Response.json(
         { configured: true, error: "Session belongs to another wallet." },
         { status: 403 }
@@ -140,7 +133,7 @@ export async function handleChatSessions(request: Request) {
     }
 
     if (existing) {
-      const deleted = await deleteSession(walletUser.id, sessionId);
+      const deleted = await deleteSession(walletUserId, sessionId);
 
       if (!deleted) {
         return Response.json(
@@ -168,14 +161,14 @@ export async function handleChatSessions(request: Request) {
 
     const existing = await readSessionOwner(session.id);
 
-    if (existing && existing.wallet_user_id !== walletUser.id) {
+    if (existing && existing.wallet_user_id !== walletUserId) {
       return Response.json(
         { configured: true, error: "Session belongs to another wallet." },
         { status: 403 }
       );
     }
 
-    const saved = await upsertSession(walletUser.id, session);
+    const saved = await upsertSession(walletUserId, session);
 
     if (!saved) {
       return Response.json(
@@ -185,7 +178,7 @@ export async function handleChatSessions(request: Request) {
     }
 
     if (session.messages.some((message) => message.result)) {
-      await upsertResearchRuns(walletUser.id, session);
+      await upsertResearchRuns(walletUserId, session);
     }
 
     return Response.json({
@@ -198,38 +191,6 @@ export async function handleChatSessions(request: Request) {
     { configured: true, error: "Unsupported action." },
     { status: 400 }
   );
-}
-
-async function upsertWalletUser(wallet: {
-  address: string;
-  message: string;
-  signature: string;
-}) {
-  const supabase = getSupabaseAdmin();
-
-  if (!supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from("langclaw_wallet_users")
-    .upsert(
-      {
-        wallet_address: wallet.address,
-        last_login_message: wallet.message,
-        last_seen_at: new Date().toISOString(),
-        last_signature: wallet.signature,
-      },
-      { onConflict: "wallet_address" }
-    )
-    .select("id")
-    .single();
-
-  if (error) {
-    return null;
-  }
-
-  return data as WalletUserRow;
 }
 
 async function readSessionOwner(sessionId: string) {

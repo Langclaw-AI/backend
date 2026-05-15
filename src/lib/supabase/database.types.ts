@@ -39,6 +39,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      langclaw_api_keys: {
+        Row: {
+          created_at: string;
+          id: string;
+          key_hash: string;
+          key_prefix: string;
+          key_suffix: string;
+          last_used_at: string | null;
+          name: string;
+          revoked_at: string | null;
+          status: "active" | "revoked";
+          updated_at: string;
+          wallet_user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          key_hash: string;
+          key_prefix: string;
+          key_suffix: string;
+          last_used_at?: string | null;
+          name: string;
+          revoked_at?: string | null;
+          status?: "active" | "revoked";
+          updated_at?: string;
+          wallet_user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          key_hash?: string;
+          key_prefix?: string;
+          key_suffix?: string;
+          last_used_at?: string | null;
+          name?: string;
+          revoked_at?: string | null;
+          status?: "active" | "revoked";
+          updated_at?: string;
+          wallet_user_id?: string;
+        };
+        Relationships: [];
+      };
       langclaw_chat_sessions: {
         Row: {
           created_at: string;
@@ -140,6 +182,300 @@ export type Database = {
           result?: Json;
           session_id?: string;
           topic?: string;
+          wallet_user_id?: string;
+        };
+        Relationships: [];
+      };
+      langclaw_automation_settings: {
+        Row: {
+          auto_pause_repeated_failures: boolean;
+          created_at: string;
+          daily_limit_neuron: string;
+          failure_notification: "email" | "in-app" | "none";
+          limit_behavior: "pause" | "alert" | "allow";
+          low_balance_threshold_neuron: string;
+          monthly_cap_neuron: string;
+          notification_email_code_hash: string | null;
+          notification_email_expires_at: string | null;
+          notification_email_linked_at: string | null;
+          notification_email_pending: string | null;
+          notification_email_verified: boolean;
+          notification_channels: Array<"email" | "telegram" | "in-app">;
+          notification_email: string | null;
+          retry_policy: "none" | "3-attempts" | "5-attempts";
+          telegram_chat_id: string | null;
+          telegram_link_code_hash: string | null;
+          telegram_link_expires_at: string | null;
+          telegram_linked_at: string | null;
+          telegram_username: string | null;
+          telegram_verified: boolean;
+          threshold_action: "notify" | "pause" | "continue";
+          updated_at: string;
+          wallet_user_id: string;
+          write_run_logs_to_memory: boolean;
+        };
+        Insert: {
+          auto_pause_repeated_failures?: boolean;
+          created_at?: string;
+          daily_limit_neuron?: string;
+          failure_notification?: "email" | "in-app" | "none";
+          limit_behavior?: "pause" | "alert" | "allow";
+          low_balance_threshold_neuron?: string;
+          monthly_cap_neuron?: string;
+          notification_email_code_hash?: string | null;
+          notification_email_expires_at?: string | null;
+          notification_email_linked_at?: string | null;
+          notification_email_pending?: string | null;
+          notification_email_verified?: boolean;
+          notification_channels?: Array<"email" | "telegram" | "in-app">;
+          notification_email?: string | null;
+          retry_policy?: "none" | "3-attempts" | "5-attempts";
+          telegram_chat_id?: string | null;
+          telegram_link_code_hash?: string | null;
+          telegram_link_expires_at?: string | null;
+          telegram_linked_at?: string | null;
+          telegram_username?: string | null;
+          telegram_verified?: boolean;
+          threshold_action?: "notify" | "pause" | "continue";
+          updated_at?: string;
+          wallet_user_id: string;
+          write_run_logs_to_memory?: boolean;
+        };
+        Update: {
+          auto_pause_repeated_failures?: boolean;
+          created_at?: string;
+          daily_limit_neuron?: string;
+          failure_notification?: "email" | "in-app" | "none";
+          limit_behavior?: "pause" | "alert" | "allow";
+          low_balance_threshold_neuron?: string;
+          monthly_cap_neuron?: string;
+          notification_email_code_hash?: string | null;
+          notification_email_expires_at?: string | null;
+          notification_email_linked_at?: string | null;
+          notification_email_pending?: string | null;
+          notification_email_verified?: boolean;
+          notification_channels?: Array<"email" | "telegram" | "in-app">;
+          notification_email?: string | null;
+          retry_policy?: "none" | "3-attempts" | "5-attempts";
+          telegram_chat_id?: string | null;
+          telegram_link_code_hash?: string | null;
+          telegram_link_expires_at?: string | null;
+          telegram_linked_at?: string | null;
+          telegram_username?: string | null;
+          telegram_verified?: boolean;
+          threshold_action?: "notify" | "pause" | "continue";
+          updated_at?: string;
+          wallet_user_id?: string;
+          write_run_logs_to_memory?: boolean;
+        };
+        Relationships: [];
+      };
+      langclaw_automation_tasks: {
+        Row: {
+          consecutive_failures: number;
+          created_at: string;
+          event_name: string | null;
+          failure_threshold: number;
+          id: string;
+          last_run_at: string | null;
+          last_run_status:
+            | "queued"
+            | "running"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "canceled"
+            | null;
+          max_retries: number;
+          metadata: Json;
+          model: string | null;
+          name: string;
+          next_run_at: string | null;
+          project: string;
+          prompt: string | null;
+          schedule_frequency: "daily" | "weekly" | "monthly" | null;
+          schedule_month_day: number | null;
+          schedule_time: string;
+          schedule_weekday: number | null;
+          status: "draft" | "active" | "paused" | "archived";
+          timezone: string;
+          trigger_type: "schedule" | "event" | "webhook";
+          updated_at: string;
+          wallet_user_id: string;
+          webhook_slug: string | null;
+        };
+        Insert: {
+          consecutive_failures?: number;
+          created_at?: string;
+          event_name?: string | null;
+          failure_threshold?: number;
+          id?: string;
+          last_run_at?: string | null;
+          last_run_status?:
+            | "queued"
+            | "running"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "canceled"
+            | null;
+          max_retries?: number;
+          metadata?: Json;
+          model?: string | null;
+          name: string;
+          next_run_at?: string | null;
+          project?: string;
+          prompt?: string | null;
+          schedule_frequency?: "daily" | "weekly" | "monthly" | null;
+          schedule_month_day?: number | null;
+          schedule_time?: string;
+          schedule_weekday?: number | null;
+          status?: "draft" | "active" | "paused" | "archived";
+          timezone?: string;
+          trigger_type?: "schedule" | "event" | "webhook";
+          updated_at?: string;
+          wallet_user_id: string;
+          webhook_slug?: string | null;
+        };
+        Update: {
+          consecutive_failures?: number;
+          created_at?: string;
+          event_name?: string | null;
+          failure_threshold?: number;
+          id?: string;
+          last_run_at?: string | null;
+          last_run_status?:
+            | "queued"
+            | "running"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "canceled"
+            | null;
+          max_retries?: number;
+          metadata?: Json;
+          model?: string | null;
+          name?: string;
+          next_run_at?: string | null;
+          project?: string;
+          prompt?: string | null;
+          schedule_frequency?: "daily" | "weekly" | "monthly" | null;
+          schedule_month_day?: number | null;
+          schedule_time?: string;
+          schedule_weekday?: number | null;
+          status?: "draft" | "active" | "paused" | "archived";
+          timezone?: string;
+          trigger_type?: "schedule" | "event" | "webhook";
+          updated_at?: string;
+          wallet_user_id?: string;
+          webhook_slug?: string | null;
+        };
+        Relationships: [];
+      };
+      langclaw_automation_runs: {
+        Row: {
+          attempt: number;
+          completed_at: string | null;
+          created_at: string;
+          duration_ms: number | null;
+          error: string | null;
+          id: string;
+          result: Json | null;
+          scheduled_for: string | null;
+          started_at: string | null;
+          status:
+            | "queued"
+            | "running"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "canceled";
+          task_id: string;
+          triggered_by: "schedule" | "event" | "webhook" | "manual" | "system";
+          usage: Json | null;
+          wallet_user_id: string;
+        };
+        Insert: {
+          attempt?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          duration_ms?: number | null;
+          error?: string | null;
+          id?: string;
+          result?: Json | null;
+          scheduled_for?: string | null;
+          started_at?: string | null;
+          status?:
+            | "queued"
+            | "running"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "canceled";
+          task_id: string;
+          triggered_by?: "schedule" | "event" | "webhook" | "manual" | "system";
+          usage?: Json | null;
+          wallet_user_id: string;
+        };
+        Update: {
+          attempt?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          duration_ms?: number | null;
+          error?: string | null;
+          id?: string;
+          result?: Json | null;
+          scheduled_for?: string | null;
+          started_at?: string | null;
+          status?:
+            | "queued"
+            | "running"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "canceled";
+          task_id?: string;
+          triggered_by?: "schedule" | "event" | "webhook" | "manual" | "system";
+          usage?: Json | null;
+          wallet_user_id?: string;
+        };
+        Relationships: [];
+      };
+      langclaw_automation_notifications: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          read_at: string | null;
+          run_id: string | null;
+          status: "unread" | "read";
+          task_id: string | null;
+          title: string;
+          wallet_user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          read_at?: string | null;
+          run_id?: string | null;
+          status?: "unread" | "read";
+          task_id?: string | null;
+          title: string;
+          wallet_user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          read_at?: string | null;
+          run_id?: string | null;
+          status?: "unread" | "read";
+          task_id?: string | null;
+          title?: string;
           wallet_user_id?: string;
         };
         Relationships: [];
@@ -390,6 +726,16 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      langclaw_create_api_key: {
+        Args: {
+          p_key_hash: string;
+          p_key_prefix: string;
+          p_key_suffix: string;
+          p_name: string;
+          p_wallet_user_id: string;
+        };
+        Returns: Database["public"]["Tables"]["langclaw_api_keys"]["Row"];
+      };
       langclaw_usage_credit_deposit: {
         Args: {
           p_amount_neuron: string;

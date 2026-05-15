@@ -82,6 +82,12 @@ The streaming discovery API uses NDJSON progress events:
 POST /api/discover/stream
 ```
 
+Full API documentation is available in:
+
+```text
+docs/API_REFERENCE.md
+```
+
 The response includes:
 
 ```ts
