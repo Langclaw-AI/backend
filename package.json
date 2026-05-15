@@ -8,9 +8,12 @@
     "build": "npm run clean && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "deploy:registry": "node scripts/deploy-signalgraph-registry.mjs",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:watch": "node --import tsx --test --watch \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@0gfoundation/0g-compute-ts-sdk": "^0.8.3",
     "@0gfoundation/0g-storage-ts-sdk": "^1.2.9",
     "@supabase/supabase-js": "^2.105.4",
     "dotenv": "^17.4.2",

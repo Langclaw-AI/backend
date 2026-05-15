@@ -1,3 +1,13 @@
+import {
+  getDefaultRouterModel,
+  hasRouterApiKey,
+  isRouterInferenceEnabled,
+  resolveRouterModelSelection,
+  shouldRequestTeeVerification,
+  streamChatCompletion,
+  type RouterChatMessage,
+} from "./zero-g/router";
+
 export type DirectChatContextMessage = {
   role: "assistant" | "user";
   content: string;
@@ -6,90 +16,73 @@ export type DirectChatContextMessage = {
 type DirectChatInput = {
   message: string;
   context: DirectChatContextMessage[];
+  requestedModel?: unknown;
   signal: AbortSignal;
   onDelta?: (delta: string) => void;
 };
-
-type ChatCompletionPayload = {
-  choices?: Array<{
-    delta?: {
-      content?: unknown;
-    };
-    message?: {
-      content?: unknown;
-    };
-  }>;
-  error?: {
-    message?: unknown;
-  };
-};
-
-const defaultRouterUrl = "https://router-api-testnet.integratenetwork.work/v1";
-const defaultModel = "qwen/qwen-2.5-7b-instruct";
 
 export async function streamDirectChatWithZeroGCompute({
   context,
   message,
   onDelta,
+  requestedModel,
   signal,
 }: DirectChatInput) {
-  const endpoint = normalizeRouterUrl(
-    process.env.OG_COMPUTE_ROUTER_URL || defaultRouterUrl
-  );
-  const model =
-    process.env.OG_DIRECT_CHAT_MODEL?.trim() ||
-    process.env.OG_COMPUTE_MODEL?.trim() ||
-    defaultModel;
-  const apiKey = process.env.OG_COMPUTE_API_KEY?.trim();
+  const selection = await resolveRouterModelSelection({
+    requestedModel,
+    service: "chat",
+  }).catch(() => ({
+    fallbackFrom: typeof requestedModel === "string" ? requestedModel : undefined,
+    modelHonored: false,
+    requestedModel: typeof requestedModel === "string" ? requestedModel : undefined,
+    usedModel: getDefaultRouterModel("chat"),
+  }));
+  const model = selection.usedModel;
 
-  if (process.env.OG_COMPUTE_ENABLED !== "true" || !apiKey) {
+  if (!isRouterInferenceEnabled() || !hasRouterApiKey()) {
     const answer = buildLocalFallback(message, context);
     onDelta?.(answer);
-    return { answer, model, source: "fallback" as const };
+    return {
+      answer,
+      fallbackFrom: selection.fallbackFrom,
+      model,
+      modelHonored: selection.modelHonored,
+      requestedModel: selection.requestedModel,
+      source: "fallback" as const,
+      usedModel: selection.usedModel,
+    };
   }
 
-  const controller = new AbortController();
-  const abort = () => controller.abort();
-  const timeout = setTimeout(
-    abort,
-    readPositiveInt(process.env.OG_COMPUTE_TIMEOUT_SECONDS, 90) * 1000
-  );
-
-  signal.addEventListener("abort", abort, { once: true });
-
   try {
-    const response = await fetch(`${endpoint}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const result = await streamChatCompletion({
+      onDelta,
+      payload: {
         model,
         messages: buildMessages(message, context),
         stream: true,
         temperature: 0.4,
-      }),
-      signal: controller.signal,
+        verify_tee: shouldRequestTeeVerification(),
+      },
+      signal,
     });
 
-    if (!response.ok) {
-      throw new Error(`0G chat returned HTTP ${response.status}.`);
-    }
-
-    if (!response.body) {
-      throw new Error("0G chat returned an empty response body.");
-    }
-
-    const answer = await readStreamingAnswer(response.body, onDelta);
-
-    if (!answer.trim()) {
+    if (!result.answer.trim()) {
       throw new Error("0G chat returned an empty answer.");
     }
 
-    return { answer: answer.trim(), model, source: "0g-compute" as const };
+    return {
+      answer: result.answer.trim(),
+      fallbackFrom: selection.fallbackFrom,
+      model,
+      modelHonored: selection.modelHonored,
+      requestedModel: selection.requestedModel,
+      source: "0g-compute" as const,
+      teeVerified: result.trace?.teeVerified,
+      teeVerification: result.teeVerification,
+      usedModel: selection.usedModel,
+    };
   } catch (error) {
-    if (signal.aborted || controller.signal.aborted) {
+    if (signal.aborted) {
       throw error;
     }
 
@@ -99,16 +92,20 @@ export async function streamDirectChatWithZeroGCompute({
     return {
       answer,
       error: error instanceof Error ? error.message : "0G chat failed.",
+      fallbackFrom: selection.fallbackFrom,
       model,
+      modelHonored: selection.modelHonored,
+      requestedModel: selection.requestedModel,
       source: "fallback" as const,
+      usedModel: selection.usedModel,
     };
-  } finally {
-    clearTimeout(timeout);
-    signal.removeEventListener("abort", abort);
   }
 }
 
-function buildMessages(message: string, context: DirectChatContextMessage[]) {
+function buildMessages(
+  message: string,
+  context: DirectChatContextMessage[]
+): RouterChatMessage[] {
   const sessionContext = context.filter(
     (item, index) =>
       !(
@@ -135,76 +132,6 @@ function buildMessages(message: string, context: DirectChatContextMessage[]) {
   ];
 }
 
-async function readStreamingAnswer(
-  body: ReadableStream<Uint8Array>,
-  onDelta?: (delta: string) => void
-) {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let answer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      break;
-    }
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-
-    for (const line of lines) {
-      const delta = readStreamLine(line);
-
-      if (!delta) {
-        continue;
-      }
-
-      answer += delta;
-      onDelta?.(delta);
-    }
-  }
-
-  const delta = readStreamLine(buffer);
-
-  if (delta) {
-    answer += delta;
-    onDelta?.(delta);
-  }
-
-  return answer;
-}
-
-function readStreamLine(line: string) {
-  const trimmed = line.trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  const data = trimmed.startsWith("data:")
-    ? trimmed.slice("data:".length).trim()
-    : trimmed;
-
-  if (!data || data === "[DONE]") {
-    return "";
-  }
-
-  try {
-    const payload = JSON.parse(data) as ChatCompletionPayload;
-
-    return (
-      readString(payload.choices?.[0]?.delta?.content) ||
-      readString(payload.choices?.[0]?.message?.content) ||
-      ""
-    );
-  } catch {
-    return "";
-  }
-}
-
 function buildLocalFallback(
   message: string,
   context: DirectChatContextMessage[]
@@ -222,18 +149,4 @@ function buildLocalFallback(
   }
 
   return "Aku belum bisa menghubungi model chat sekarang. Coba lagi sebentar.";
-}
-
-function readPositiveInt(value: string | undefined, fallback: number) {
-  const parsed = Number.parseInt(value ?? "", 10);
-
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function readString(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
-
-function normalizeRouterUrl(value: string) {
-  return value.replace(/\/+$/, "");
 }

@@ -1,9 +1,16 @@
 import type { DiscoverPayload, WorkflowProgressEvent } from "./signalgraph/types";
+import type { RouterTeeVerification } from "./zero-g/router";
 
 export type DirectChatPayload = {
   answer: string;
   model?: string;
+  requestedModel?: string;
+  usedModel?: string;
+  fallbackFrom?: string;
+  modelHonored?: boolean;
   source?: "0g-compute" | "fallback";
+  teeVerified?: boolean | null;
+  teeVerification?: RouterTeeVerification;
   title?: string;
 };
 

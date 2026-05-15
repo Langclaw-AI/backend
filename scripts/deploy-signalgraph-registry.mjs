@@ -1,7 +1,9 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { config } from "dotenv";
 import {
   createPublicClient,
   createWalletClient,
@@ -12,12 +14,18 @@ import { privateKeyToAccount } from "viem/accounts";
 import solc from "solc";
 
 const rootDir = join(fileURLToPath(new URL(".", import.meta.url)), "..");
+for (const path of [join(rootDir, ".env.local"), join(rootDir, ".env")]) {
+  if (existsSync(path)) {
+    config({ path, override: false });
+  }
+}
+
 const contractPath = join(rootDir, "contracts", "SignalGraphRegistry.sol");
 const rpcUrl =
   process.env.OG_CHAIN_RPC_URL ||
   process.env.OG_RPC_URL ||
-  "https://evmrpc-testnet.0g.ai";
-const chainId = Number.parseInt(process.env.OG_CHAIN_ID || "16602", 10);
+  "https://evmrpc.0g.ai";
+const chainId = Number.parseInt(process.env.OG_CHAIN_ID || "16661", 10);
 const privateKey = normalizePrivateKey(
   process.env.OG_PRIVATE_KEY || process.env.OG_STORAGE_PRIVATE_KEY || ""
 );
@@ -30,7 +38,7 @@ const { abi, bytecode } = await compileContract();
 const account = privateKeyToAccount(privateKey);
 const chain = defineChain({
   id: chainId,
-  name: chainId === 16661 ? "0G Mainnet" : "0G Galileo Testnet",
+  name: chainId === 16661 ? "0G Mainnet" : "0G Custom Network",
   nativeCurrency: {
     decimals: 18,
     name: "0G",

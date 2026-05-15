@@ -11,6 +11,24 @@ import { handleChatSessions } from "./routes/chat-sessions";
 import { handleChatStream } from "./routes/chat-stream";
 import { handleDiscover } from "./routes/discover";
 import { handleDiscoverStream } from "./routes/discover-stream";
+import {
+  handleUsageBalance,
+  handleUsageDepositVerify,
+  handleUsageQuote,
+  handleUsageWithdrawRequest,
+} from "./routes/usage";
+import {
+  handleZeroGAdminAccountBalance,
+  handleZeroGAdminUsageHistory,
+  handleZeroGAdminUsageStats,
+  handleZeroGAsyncImageGeneration,
+  handleZeroGAsyncJob,
+  handleZeroGAudioTranscription,
+  handleZeroGChatCompletions,
+  handleZeroGImageGeneration,
+  handleZeroGModels,
+  handleZeroGProviders,
+} from "./routes/zero-g-router";
 
 type RouteHandler = (request: Request) => Promise<Response> | Response;
 
@@ -19,6 +37,19 @@ const routes = new Map<string, RouteHandler>([
   ["POST /api/chat/stream", handleChatStream],
   ["POST /api/discover", handleDiscover],
   ["POST /api/discover/stream", handleDiscoverStream],
+  ["POST /api/usage/balance", handleUsageBalance],
+  ["POST /api/usage/deposit/verify", handleUsageDepositVerify],
+  ["POST /api/usage/quote", handleUsageQuote],
+  ["POST /api/usage/withdraw/request", handleUsageWithdrawRequest],
+  ["GET /api/0g/models", handleZeroGModels],
+  ["GET /api/0g/providers", handleZeroGProviders],
+  ["POST /api/0g/chat/completions", handleZeroGChatCompletions],
+  ["POST /api/0g/images/generations", handleZeroGImageGeneration],
+  ["POST /api/0g/async/images/generations", handleZeroGAsyncImageGeneration],
+  ["POST /api/0g/audio/transcriptions", handleZeroGAudioTranscription],
+  ["GET /api/0g/admin/account/balance", handleZeroGAdminAccountBalance],
+  ["GET /api/0g/admin/account/usage/stats", handleZeroGAdminUsageStats],
+  ["GET /api/0g/admin/account/usage/history", handleZeroGAdminUsageHistory],
 ]);
 
 const port = readPort(process.env.PORT, 3001);
@@ -51,6 +82,16 @@ async function handleRequest(
         response,
         Response.json({ ok: true, service: "signalgraph-backend" }),
       );
+      return;
+    }
+
+    if (
+      request.method === "GET" &&
+      url.pathname.startsWith("/api/0g/async/jobs/")
+    ) {
+      const webRequest = createWebRequest(request, url);
+      const webResponse = await handleZeroGAsyncJob(webRequest);
+      await writeWebResponse(response, webResponse);
       return;
     }
 
@@ -169,7 +210,14 @@ function setCorsHeaders(response: ServerResponse) {
   );
   response.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization",
+    [
+      "Content-Type",
+      "Authorization",
+      "X-Langclaw-Admin-Key",
+      "X-Langclaw-Wallet-Address",
+      "X-Langclaw-Wallet-Message",
+      "X-Langclaw-Wallet-Signature",
+    ].join(", "),
   );
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
 }
