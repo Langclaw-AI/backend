@@ -40,8 +40,8 @@ SignalGraph needs persistent memory, verifiable evidence, and AI-native infrastr
 
 ```text
 User
-  -> Web App
-  -> API Gateway
+  -> API Client
+  -> SignalGraph Backend API
   -> OpenClaw Runtime Adapter
   -> Planner Agent
   -> Discovery Agent
@@ -60,7 +60,7 @@ User
 
 SignalGraph uses OpenClaw as the agent reasoning and orchestration layer.
 
-OpenClaw is not a raw provider API caller. Next.js keeps provider tools server-side for X discovery, GitHub API, Tavily or Brave Search, and HackQuest. OpenClaw owns the reasoning steps for Planner, Trend Scorer, Evidence Packager, Verifier, and Final Conclusion. Each of those steps runs through `openclaw agent --json` with a separate session id when OpenClaw is enabled. Discovery, source normalization, 0G Storage upload, and 0G Chain anchoring stay in TypeScript so API keys and wallet keys remain server-side.
+OpenClaw is not a raw provider API caller. The backend keeps provider tools server-side for X discovery, GitHub API, Tavily or Brave Search, and HackQuest. OpenClaw owns the reasoning steps for Planner, Trend Scorer, Evidence Packager, Verifier, and Final Conclusion. Each of those steps runs through `openclaw agent --json` with a separate session id when OpenClaw is enabled. Discovery, source normalization, 0G Storage upload, and 0G Chain anchoring stay in TypeScript so API keys and wallet keys remain server-side.
 
 By default, X discovery uses Brave Search with a `site:x.com` query. Set `X_DISCOVERY_PROVIDER=x-api` only when the official X API has available credits.
 
@@ -76,7 +76,7 @@ The public API stays stable:
 POST /api/discover
 ```
 
-The chat UI uses streaming progress:
+The streaming discovery API uses NDJSON progress events:
 
 ```text
 POST /api/discover/stream
@@ -324,6 +324,19 @@ npm install
 npm run dev
 ```
 
+The development server listens on `http://localhost:3000` by default. You can check it with:
+
+```bash
+curl http://localhost:3000/health
+```
+
+For a production-style run:
+
+```bash
+npm run build
+npm start
+```
+
 ## OpenClaw CLI Setup
 
 SignalGraph can run without OpenClaw because every agent step has a deterministic fallback. For the hackathon demo, install and verify OpenClaw so the Planner, Trend Scorer, Evidence Packager, Verifier, and Final Conclusion steps can run through `openclaw agent --json`.
@@ -359,9 +372,9 @@ openclaw agent \
   --json
 ```
 
-If the command prints valid JSON, SignalGraph can call OpenClaw from the Next.js API route.
+If the command prints valid JSON, SignalGraph can call OpenClaw from the backend API route.
 
-Use these environment values in `.env.local`:
+Use these environment values in `.env` or `.env.local`:
 
 ```bash
 OPENCLAW_ENABLED=true
@@ -391,8 +404,7 @@ X_DISCOVERY_PROVIDER=brave
 GITHUB_TOKEN=
 TAVILY_API_KEY=
 BRAVE_SEARCH_API_KEY=
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 OPENCLAW_ENABLED=true
 OPENCLAW_CLI_PATH=openclaw
@@ -425,13 +437,13 @@ SIGNALGRAPH_REGISTRY_ADDRESS=
 
 ## Supabase Persistence
 
-Langclaw stores chat sessions locally first. When a user logs in with a wallet and `SUPABASE_SERVICE_ROLE_KEY` is configured, the app syncs chat history to Supabase through the server route:
+When a client sends a signed wallet session and `SUPABASE_SERVICE_ROLE_KEY` is configured, the backend syncs chat history to Supabase through:
 
 ```text
 POST /api/chat/sessions
 ```
 
-The browser never writes directly to chat tables. The server verifies the wallet signature, then writes sessions and messages with the Supabase service role key.
+Clients never write directly to chat tables. The server verifies the wallet signature, then writes sessions and messages with the Supabase service role key.
 
 Apply the database schema from:
 
@@ -447,7 +459,7 @@ Deploy the registry contract after the wallet has 0G testnet tokens:
 npm run deploy:registry
 ```
 
-Copy the printed `SIGNALGRAPH_REGISTRY_ADDRESS` into `.env.local`, then restart the app.
+Copy the printed `SIGNALGRAPH_REGISTRY_ADDRESS` into `.env`, then restart the backend.
 
 ## Reviewer Notes
 

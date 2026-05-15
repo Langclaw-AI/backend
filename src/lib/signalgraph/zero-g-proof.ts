@@ -172,7 +172,12 @@ async function uploadEvidenceBundle({
       throw treeError || new Error("0G Storage SDK could not compute a root hash.");
     }
 
-    const [uploadResult, uploadError] = await indexer.upload(file, evmRpc, signer);
+    const uploadSigner = signer as unknown as Parameters<typeof indexer.upload>[2];
+    const [uploadResult, uploadError] = await indexer.upload(
+      file,
+      evmRpc,
+      uploadSigner
+    );
 
     if (uploadError) {
       throw uploadError;
