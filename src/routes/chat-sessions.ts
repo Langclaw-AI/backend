@@ -1,14 +1,10 @@
-import { NextResponse } from "next/server";
-
-import type { ChatSession, StoredChatMessage } from "@/lib/chat-sessions";
-import { verifyWalletSession, type WalletAuthInput } from "@/lib/server/wallet-auth";
-import type { Json } from "@/lib/supabase/database.types";
+import type { ChatSession, StoredChatMessage } from "../lib/chat-sessions";
+import { verifyWalletSession, type WalletAuthInput } from "../lib/server/wallet-auth";
+import type { Json } from "../lib/supabase/database.types";
 import {
   getSupabaseAdmin,
   getSupabaseConfigStatus,
-} from "@/lib/supabase/server";
-
-export const runtime = "nodejs";
+} from "../lib/supabase/server";
 
 type ChatSessionsBody = {
   action?: unknown;
@@ -41,12 +37,12 @@ type ChatMessageRow = {
   created_at: string;
 };
 
-export async function POST(request: Request) {
+export async function handleChatSessions(request: Request) {
   const supabase = getSupabaseAdmin();
   const config = getSupabaseConfigStatus();
 
   if (!supabase) {
-    return NextResponse.json({
+    return Response.json({
       configured: false,
       error: config.hasUrl
         ? "SUPABASE_SERVICE_ROLE_KEY is missing."
@@ -59,7 +55,7 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as ChatSessionsBody;
   } catch {
-    return NextResponse.json(
+    return Response.json(
       { configured: true, error: "Request body must be valid JSON." },
       { status: 400 }
     );
@@ -68,7 +64,7 @@ export async function POST(request: Request) {
   const wallet = await verifyWalletSession(body.wallet ?? {});
 
   if (!wallet) {
-    return NextResponse.json(
+    return Response.json(
       { configured: true, error: "Wallet signature is required." },
       { status: 401 }
     );
@@ -77,7 +73,7 @@ export async function POST(request: Request) {
   const walletUser = await upsertWalletUser(wallet);
 
   if (!walletUser) {
-    return NextResponse.json(
+    return Response.json(
       { configured: true, error: "Unable to sync wallet session." },
       { status: 500 }
     );
@@ -92,13 +88,13 @@ export async function POST(request: Request) {
       .limit(40);
 
     if (error) {
-      return NextResponse.json(
+      return Response.json(
         { configured: true, error: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
+    return Response.json({
       configured: true,
       sessions: ((data ?? []) as ChatSessionRow[]).map((row) =>
         rowToSession(row)
@@ -110,7 +106,7 @@ export async function POST(request: Request) {
     const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
 
     if (!sessionId) {
-      return NextResponse.json(
+      return Response.json(
         { configured: true, error: "sessionId is required." },
         { status: 400 }
       );
@@ -118,7 +114,7 @@ export async function POST(request: Request) {
 
     const session = await readSession(walletUser.id, sessionId);
 
-    return NextResponse.json({
+    return Response.json({
       configured: true,
       session,
     });
@@ -128,7 +124,7 @@ export async function POST(request: Request) {
     const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
 
     if (!sessionId) {
-      return NextResponse.json(
+      return Response.json(
         { configured: true, error: "sessionId is required." },
         { status: 400 }
       );
@@ -137,7 +133,7 @@ export async function POST(request: Request) {
     const existing = await readSessionOwner(sessionId);
 
     if (existing && existing.wallet_user_id !== walletUser.id) {
-      return NextResponse.json(
+      return Response.json(
         { configured: true, error: "Session belongs to another wallet." },
         { status: 403 }
       );
@@ -147,14 +143,14 @@ export async function POST(request: Request) {
       const deleted = await deleteSession(walletUser.id, sessionId);
 
       if (!deleted) {
-        return NextResponse.json(
+        return Response.json(
           { configured: true, error: "Unable to delete chat session." },
           { status: 500 }
         );
       }
     }
 
-    return NextResponse.json({
+    return Response.json({
       configured: true,
       deleted: true,
     });
@@ -164,7 +160,7 @@ export async function POST(request: Request) {
     const session = normalizeSession(body.session);
 
     if (!session) {
-      return NextResponse.json(
+      return Response.json(
         { configured: true, error: "A valid session is required." },
         { status: 400 }
       );
@@ -173,7 +169,7 @@ export async function POST(request: Request) {
     const existing = await readSessionOwner(session.id);
 
     if (existing && existing.wallet_user_id !== walletUser.id) {
-      return NextResponse.json(
+      return Response.json(
         { configured: true, error: "Session belongs to another wallet." },
         { status: 403 }
       );
@@ -182,7 +178,7 @@ export async function POST(request: Request) {
     const saved = await upsertSession(walletUser.id, session);
 
     if (!saved) {
-      return NextResponse.json(
+      return Response.json(
         { configured: true, error: "Unable to save chat session." },
         { status: 500 }
       );
@@ -192,13 +188,13 @@ export async function POST(request: Request) {
       await upsertResearchRuns(walletUser.id, session);
     }
 
-    return NextResponse.json({
+    return Response.json({
       configured: true,
       session: saved,
     });
   }
 
-  return NextResponse.json(
+  return Response.json(
     { configured: true, error: "Unsupported action." },
     { status: 400 }
   );
@@ -417,7 +413,8 @@ function rowToSession(
 function rowToMessage(row: ChatMessageRow): StoredChatMessage {
   return {
     content: row.content,
-    directAnswer: (row.direct_answer as StoredChatMessage["directAnswer"]) ?? undefined,
+    directAnswer:
+      (row.direct_answer as StoredChatMessage["directAnswer"]) ?? undefined,
     error: row.error ?? undefined,
     id: row.id,
     progressEvents:

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import {
   isRecord,
@@ -34,23 +35,21 @@ type AgentStepInput<T> = {
 };
 
 const providers: ProviderName[] = ["X", "GitHub", "Tavily", "HackQuest"];
-const skillFiles: Record<string, URL> = {
-  "openclaw/skills/planner.md": new URL(
-    "../../../openclaw/skills/planner.md",
-    import.meta.url
+const skillFiles: Record<string, string> = {
+  "openclaw/skills/planner.md": join(process.cwd(), "openclaw", "skills", "planner.md"),
+  "openclaw/skills/trend-scorer.md": join(
+    process.cwd(),
+    "openclaw",
+    "skills",
+    "trend-scorer.md"
   ),
-  "openclaw/skills/trend-scorer.md": new URL(
-    "../../../openclaw/skills/trend-scorer.md",
-    import.meta.url
+  "openclaw/skills/evidence-packager.md": join(
+    process.cwd(),
+    "openclaw",
+    "skills",
+    "evidence-packager.md"
   ),
-  "openclaw/skills/evidence-packager.md": new URL(
-    "../../../openclaw/skills/evidence-packager.md",
-    import.meta.url
-  ),
-  "openclaw/skills/verifier.md": new URL(
-    "../../../openclaw/skills/verifier.md",
-    import.meta.url
-  ),
+  "openclaw/skills/verifier.md": join(process.cwd(), "openclaw", "skills", "verifier.md"),
 };
 
 export function createRunId() {

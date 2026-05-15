@@ -1,11 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-
-import type { DirectChatPayload } from "@/lib/chat-sessions";
-import { runSignalGraphWorkflow } from "@/lib/signalgraph/workflow";
-import type { WorkflowProgressEvent } from "@/lib/signalgraph/types";
-import { streamDirectChatWithZeroGCompute } from "@/lib/zero-g-direct-chat";
-
-export const runtime = "nodejs";
+import type { DirectChatPayload } from "../lib/chat-sessions";
+import { runSignalGraphWorkflow } from "../lib/signalgraph/workflow";
+import type { WorkflowProgressEvent } from "../lib/signalgraph/types";
+import { streamDirectChatWithZeroGCompute } from "../lib/zero-g-direct-chat";
 
 type ChatMessageInput = {
   role?: unknown;
@@ -26,13 +22,13 @@ type ContextMessage = {
   content: string;
 };
 
-export async function POST(request: NextRequest) {
+export async function handleChatStream(request: Request) {
   let body: ChatRequestBody;
 
   try {
     body = (await request.json()) as ChatRequestBody;
   } catch {
-    return NextResponse.json(
+    return Response.json(
       { error: "Request body must be valid JSON." },
       { status: 400 }
     );
@@ -43,10 +39,7 @@ export async function POST(request: NextRequest) {
   const useAgent = body.researchTrend === true || body.useAgent === true;
 
   if (!message) {
-    return NextResponse.json(
-      { error: "Message is required." },
-      { status: 400 }
-    );
+    return Response.json({ error: "Message is required." }, { status: 400 });
   }
 
   const encoder = new TextEncoder();

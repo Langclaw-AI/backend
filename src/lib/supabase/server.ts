@@ -1,12 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database } from "./database.types";
 
 let cachedClient: SupabaseClient<Database> | null = null;
 
 export function getSupabaseAdmin() {
-  const url =
-    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const url = process.env.SUPABASE_URL ?? "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
   if (!url || !serviceRoleKey) {
@@ -27,9 +26,7 @@ export function getSupabaseAdmin() {
 
 export function getSupabaseConfigStatus() {
   return {
-    hasUrl: Boolean(
-      process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
-    ),
+    hasUrl: Boolean(process.env.SUPABASE_URL),
     hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
   };
 }

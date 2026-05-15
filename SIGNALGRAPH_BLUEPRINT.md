@@ -237,8 +237,8 @@ Output:
 
 ```text
 User
-  -> Web App
-  -> API Gateway
+  -> API Client
+  -> SignalGraph Backend API
   -> OpenClaw Runtime Adapter
   -> Planner Agent
   -> Discovery Agent
@@ -255,17 +255,9 @@ User
 
 ## Recommended Stack
 
-### Frontend
-
-- Next.js
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- viem or wagmi for wallet and contract reads
-
 ### Backend
 
-- Next.js API routes or Hono
+- Node.js HTTP API
 - TypeScript
 - OpenClaw runtime adapter for Track 1 alignment
 - TypeScript provider tools for live discovery
@@ -596,21 +588,21 @@ Goal:
 
 - Lock scope.
 - Create repo structure.
-- Build UI skeleton.
+- Build backend API skeleton.
 - Draft contract.
 
 Tasks:
 
-- Create Next.js app.
-- Add research console UI.
-- Add static agent timeline.
+- Create Node.js backend app.
+- Add research API routes.
+- Add static agent trace payload.
 - Add registry contract.
 - Add sample evidence JSON.
 
 Done when:
 
-- Local app opens.
-- User can enter one topic.
+- Local backend starts.
+- Client can POST one topic.
 - Static demo flow works.
 
 ### Day 2, May 13
