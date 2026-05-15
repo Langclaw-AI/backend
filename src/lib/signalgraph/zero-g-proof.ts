@@ -54,11 +54,11 @@ type StorageUploadResult =
       txSeqs: number[];
     };
 
-const defaultTestnetRpc = "https://evmrpc-testnet.0g.ai";
-const defaultStorageIndexer = "https://indexer-storage-testnet-turbo.0g.ai";
-const defaultChainExplorer = "https://chainscan-galileo.0g.ai";
-const defaultStorageExplorer = "https://storagescan-galileo.0g.ai";
-const defaultChainId = 16602;
+const defaultMainnetRpc = "https://evmrpc.0g.ai";
+const defaultStorageIndexer = "https://indexer-storage-turbo.0g.ai";
+const defaultChainExplorer = "https://chainscan.0g.ai";
+const defaultStorageExplorer = "https://storagescan.0g.ai";
+const defaultChainId = 16661;
 
 const signalGraphRegistryAbi = [
   {
@@ -129,7 +129,7 @@ async function uploadEvidenceBundle({
   const evmRpc =
     process.env.OG_STORAGE_RPC_URL?.trim() ||
     process.env.OG_RPC_URL?.trim() ||
-    defaultTestnetRpc;
+    defaultMainnetRpc;
   const privateKey = readPrivateKey();
 
   if (process.env.OG_STORAGE_ENABLED !== "true") {
@@ -222,7 +222,7 @@ async function anchorBrief({
   const rpcUrl =
     process.env.OG_CHAIN_RPC_URL?.trim() ||
     process.env.OG_RPC_URL?.trim() ||
-    defaultTestnetRpc;
+    defaultMainnetRpc;
   const chainId = readChainId();
   const explorerBase = trimSlash(
     process.env.OG_CHAIN_EXPLORER_URL || defaultChainExplorer
@@ -274,7 +274,7 @@ async function anchorBrief({
     const account = privateKeyToAccount(privateKey);
     const chain = defineChain({
       id: chainId,
-      name: chainId === 16661 ? "0G Mainnet" : "0G Galileo Testnet",
+      name: chainId === 16661 ? "0G Mainnet" : "0G Custom Network",
       nativeCurrency: {
         decimals: 18,
         name: "0G",

@@ -57,6 +57,9 @@ export type WorkflowProgressEvent = {
   status: "pending" | "running" | "complete" | "failed";
   summary: string;
   timestamp: string;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
   execution?: StepExecution;
   model?: string;
   sessionId?: string;
@@ -75,6 +78,7 @@ export type FinalConclusion = {
     label: string;
     text: string;
     sourceId?: string;
+    sourceIds: string[];
   }>;
   recommendation: string;
   qualityNote: string;
@@ -94,6 +98,9 @@ export type FinalAnswerMeta = {
   synthesis: "0g-compute" | "openclaw-ai" | "deterministic-fallback";
   execution?: StepExecution;
   model?: string;
+  requestedModel?: string;
+  usedModel?: string;
+  modelHonored?: boolean;
   sessionId?: string;
   transport?: string;
   fallbackFrom?: string;
@@ -166,6 +173,7 @@ export type DiscoverPayload = {
   finalAnswerMeta?: FinalAnswerMeta;
   agentOutputs?: AgentOutputs;
   zeroG?: ZeroGProof;
+  usage?: ModelUsageReceipt;
 };
 
 export type ZeroGStorageStatus = "prepared" | "uploaded" | "skipped" | "failed";
@@ -197,7 +205,18 @@ export type ZeroGChainProof = {
 export type ZeroGComputeProof = {
   status: ZeroGComputeStatus;
   model?: string;
+  requestedModel?: string;
+  usedModel?: string;
+  modelHonored?: boolean;
+  fallbackFrom?: string;
   endpoint?: string;
+  chatId?: string;
+  requestId?: string;
+  provider?: string;
+  teeVerified?: boolean | null;
+  teeVerification?: ZeroGTeeVerification;
+  usage?: ZeroGTokenUsage;
+  billing?: ZeroGComputeBilling;
   error?: string;
 };
 
@@ -205,4 +224,68 @@ export type ZeroGProof = {
   storage: ZeroGStorageProof;
   chain: ZeroGChainProof;
   compute?: ZeroGComputeProof;
+};
+
+export type ZeroGTokenUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  reasoningTokens?: number;
+  cachedInputTokens?: number;
+  maxTokens?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+};
+
+export type ZeroGComputeBilling = {
+  inputCostNeuron?: string;
+  outputCostNeuron?: string;
+  totalCostNeuron?: string;
+  source: "router-trace" | "token-estimate" | "reserved-estimate";
+};
+
+export type ZeroGTeeVerification = {
+  requested: boolean;
+  routerVerified?: boolean | null;
+  independentVerified?: boolean | null;
+  status:
+    | "not-requested"
+    | "router-verified"
+    | "router-unverified"
+    | "router-missing"
+    | "independent-verified"
+    | "independent-failed"
+    | "independent-unavailable"
+    | "independent-error";
+  chatId?: string;
+  error?: string;
+};
+
+export type ModelUsageReceipt = {
+  wallet: string;
+  model: string;
+  requestId?: string;
+  provider?: string;
+  teeVerified?: boolean | null;
+  inputTokens?: number;
+  outputTokens?: number;
+  reasoningTokens?: number;
+  cachedInputTokens?: number;
+  maxTokens?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  promptPriceNeuron: string;
+  completionPriceNeuron: string;
+  reservedNeuron: string;
+  rawCostNeuron: string;
+  markupBps: number;
+  markupNeuron: string;
+  chargedNeuron: string;
+  releasedNeuron: string;
+  balanceBefore: string;
+  balanceAfter: string;
+  costSource: "router-trace" | "token-estimate" | "reserved-estimate";
+  totalCostNeuron?: string;
+  status: "charged" | "estimated" | "refunded" | "failed_after_charge";
 };

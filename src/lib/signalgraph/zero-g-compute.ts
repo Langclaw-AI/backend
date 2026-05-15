@@ -1,5 +1,17 @@
 import { buildFinalAnswerPrompt, parseFinalAnswer } from "./openclaw-ai";
-import { readPositiveInt, sanitizeError } from "./openclaw-runner";
+import { sanitizeError } from "./openclaw-runner";
+import {
+  chatCompletion,
+  extractTextContent,
+  getDefaultRouterModel,
+  getRouterEndpoint,
+  hasRouterApiKey,
+  isRouterInferenceEnabled,
+  resolveRouterModelSelection,
+  shouldRequestTeeVerification,
+  type RouterModelSelection,
+  type RouterTokenUsage,
+} from "../zero-g/router";
 import type {
   AgentOutputs,
   FinalAnswer,
@@ -18,6 +30,7 @@ type ZeroGComputeInput = {
   runtime: OrchestrationRuntime;
   steps: OrchestrationStep[];
   agentOutputs?: AgentOutputs;
+  requestedModel?: unknown;
 };
 
 type ZeroGComputeResult = {
@@ -26,89 +39,47 @@ type ZeroGComputeResult = {
   compute: ZeroGComputeProof;
 };
 
-type ChatCompletionResponse = {
-  choices?: Array<{
-    message?: {
-      content?: unknown;
-    };
-  }>;
-  error?: {
-    message?: unknown;
-  };
-};
-
-const defaultRouterUrl = "https://router-api-testnet.integratenetwork.work/v1";
-const defaultModel = "qwen/qwen-2.5-7b-instruct";
-
 export async function synthesizeFinalAnswerWithZeroGCompute(
   input: ZeroGComputeInput
 ): Promise<ZeroGComputeResult> {
-  const endpoint = normalizeRouterUrl(
-    process.env.OG_COMPUTE_ROUTER_URL || defaultRouterUrl
-  );
-  const model = process.env.OG_COMPUTE_MODEL?.trim() || defaultModel;
-  const apiKey = process.env.OG_COMPUTE_API_KEY?.trim();
+  const endpoint = getRouterEndpoint();
+  const selection = await resolveComputeModelSelection(input.requestedModel);
+  const model = selection.usedModel;
 
-  if (process.env.OG_COMPUTE_ENABLED !== "true") {
+  if (!isRouterInferenceEnabled()) {
     return skippedCompute(
-      model,
+      selection,
       endpoint,
       "OG_COMPUTE_ENABLED is not true."
     );
   }
 
-  if (!apiKey) {
+  if (!hasRouterApiKey()) {
     return skippedCompute(
-      model,
+      selection,
       endpoint,
       "OG_COMPUTE_API_KEY is empty."
     );
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    readPositiveInt(process.env.OG_COMPUTE_TIMEOUT_SECONDS, 90) * 1000
-  );
-
   try {
-    const response = await fetch(`${endpoint}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are SignalGraph's Final Conclusion Agent. Return only valid JSON.",
-          },
-          {
-            role: "user",
-            content: buildFinalAnswerPrompt(input),
-          },
-        ],
-        temperature: 0.2,
-      }),
-      signal: controller.signal,
+    const result = await chatCompletion({
+      model,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are SignalGraph's Final Conclusion Agent. Return only valid JSON.",
+        },
+        {
+          role: "user",
+          content: buildFinalAnswerPrompt(input),
+        },
+      ],
+      temperature: 0.2,
+      verify_tee: shouldRequestTeeVerification(),
     });
-
-    const payload = (await response.json().catch(() => null)) as
-      | ChatCompletionResponse
-      | null;
-
-    if (!response.ok) {
-      const errorMessage =
-        readString(payload?.error?.message) ||
-        `0G Compute Router returned HTTP ${response.status}.`;
-
-      throw new Error(errorMessage);
-    }
-
-    const text = readString(payload?.choices?.[0]?.message?.content);
+    const text = extractTextContent(result.data);
     const finalAnswer = parseFinalAnswer(text);
 
     if (!finalAnswer) {
@@ -120,13 +91,35 @@ export async function synthesizeFinalAnswerWithZeroGCompute(
       meta: {
         synthesis: "0g-compute",
         execution: "0g-compute",
+        fallbackFrom: selection.fallbackFrom,
         model,
+        modelHonored: selection.modelHonored,
+        requestedModel: selection.requestedModel,
         transport: "0g-compute-router",
+        usedModel: model,
       },
       compute: {
         status: "used",
+        fallbackFrom: selection.fallbackFrom,
         model,
+        modelHonored: selection.modelHonored,
         endpoint,
+        chatId: result.trace?.chatId,
+        requestId: result.trace?.requestId,
+        requestedModel: selection.requestedModel,
+        provider: result.trace?.provider,
+        teeVerified: result.trace?.teeVerified,
+        teeVerification: result.teeVerification,
+        usedModel: model,
+        usage: toZeroGUsage(result.usage),
+        billing: result.trace?.billing?.totalCostNeuron
+          ? {
+              inputCostNeuron: result.trace.billing.inputCostNeuron,
+              outputCostNeuron: result.trace.billing.outputCostNeuron,
+              totalCostNeuron: result.trace.billing.totalCostNeuron,
+              source: "router-trace",
+            }
+          : undefined,
       },
     };
   } catch (error) {
@@ -138,48 +131,114 @@ export async function synthesizeFinalAnswerWithZeroGCompute(
       meta: {
         synthesis: "deterministic-fallback",
         execution: "deterministic-fallback",
+        fallbackFrom: selection.fallbackFrom,
         model,
+        modelHonored: selection.modelHonored,
+        requestedModel: selection.requestedModel,
         transport: "0g-compute-router",
         error: detail || "0G Compute Router request failed.",
+        usedModel: model,
       },
       compute: {
         status: "failed",
+        fallbackFrom: selection.fallbackFrom,
         model,
+        modelHonored: selection.modelHonored,
         endpoint,
         error: detail || "0G Compute Router request failed.",
+        requestedModel: selection.requestedModel,
+        usedModel: model,
       },
     };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
+async function resolveComputeModelSelection(requestedModel?: unknown) {
+  const fallbackRequested =
+    (requestedModel ?? process.env.OG_COMPUTE_MODEL?.trim()) || undefined;
+
+  return resolveRouterModelSelection({
+    requestedModel: fallbackRequested,
+    service: "chat",
+  }).catch(
+    (): RouterModelSelection => {
+      const requested =
+        typeof requestedModel === "string" ? requestedModel.trim() : "";
+      const usedModel = getDefaultRouterModel("chat");
+
+      return requested
+        ? {
+            fallbackFrom: requested,
+            modelHonored: false,
+            requestedModel: requested,
+            usedModel,
+          }
+        : {
+            modelHonored: true,
+            usedModel,
+          };
+    }
+  );
+}
+
 function skippedCompute(
-  model: string,
+  selection: RouterModelSelection,
   endpoint: string,
   error: string
 ): ZeroGComputeResult {
+  const model = selection.usedModel;
+
   return {
     meta: {
       synthesis: "deterministic-fallback",
       execution: "deterministic-fallback",
+      fallbackFrom: selection.fallbackFrom,
       model,
+      modelHonored: selection.modelHonored,
+      requestedModel: selection.requestedModel,
       transport: "0g-compute-router",
       error,
+      usedModel: model,
     },
     compute: {
       status: "skipped",
+      fallbackFrom: selection.fallbackFrom,
       model,
+      modelHonored: selection.modelHonored,
       endpoint,
       error,
+      requestedModel: selection.requestedModel,
+      usedModel: model,
     },
   };
 }
 
-function normalizeRouterUrl(value: string) {
-  return value.replace(/\/+$/, "");
-}
+function toZeroGUsage(value: RouterTokenUsage | undefined) {
+  if (!value) {
+    return undefined;
+  }
 
-function readString(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+  if (
+    value.inputTokens === undefined &&
+    value.outputTokens === undefined &&
+    value.reasoningTokens === undefined &&
+    value.cachedInputTokens === undefined &&
+    value.maxTokens === undefined &&
+    value.promptTokens === undefined &&
+    value.completionTokens === undefined &&
+    value.totalTokens === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    inputTokens: value.inputTokens ?? value.promptTokens,
+    outputTokens: value.outputTokens ?? value.completionTokens,
+    reasoningTokens: value.reasoningTokens,
+    cachedInputTokens: value.cachedInputTokens,
+    maxTokens: value.maxTokens,
+    promptTokens: value.promptTokens,
+    completionTokens: value.completionTokens,
+    totalTokens: value.totalTokens,
+  };
 }

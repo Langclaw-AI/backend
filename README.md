@@ -257,8 +257,8 @@ Implementation:
 
 - `src/lib/signalgraph/zero-g-proof.ts`
 - SDK: `@0gfoundation/0g-storage-ts-sdk`
-- Default testnet indexer: `https://indexer-storage-testnet-turbo.0g.ai`
-- Default testnet RPC: `https://evmrpc-testnet.0g.ai`
+- Default mainnet indexer: `https://indexer-storage-turbo.0g.ai`
+- Default mainnet RPC: `https://evmrpc.0g.ai`
 
 ### 0G Chain
 
@@ -278,6 +278,8 @@ Implementation:
 ### 0G Compute Router
 
 SignalGraph uses 0G Compute Router for final-answer inference when enabled. The Router uses an OpenAI-compatible `/v1/chat/completions` endpoint, so the backend calls it directly with `OG_COMPUTE_API_KEY` and `OG_COMPUTE_MODEL`.
+
+Model selection comes from the live Router catalog. Use `GET /api/0g/models` for the UI picker. The backend maps model `type` to the matching endpoint, so chat models use chat completions, image models use image generation, and speech models use audio transcription. Request parameters are filtered against each model's `supported_parameters`.
 
 ## Smart Contract
 
@@ -417,20 +419,23 @@ OPENCLAW_AGENT_THINKING=low
 OPENCLAW_MODEL=
 OPENAI_API_KEY=
 OG_COMPUTE_ENABLED=true
-OG_COMPUTE_ROUTER_URL=https://router-api-testnet.integratenetwork.work/v1
-OG_COMPUTE_MODEL=qwen/qwen-2.5-7b-instruct
+OG_COMPUTE_ROUTER_URL=https://router-api.0g.ai/v1
+OG_COMPUTE_MODEL=0GM-1.0-35B-A3B
+OG_DIRECT_CHAT_MODEL=0GM-1.0-35B-A3B
 OG_COMPUTE_API_KEY=
 OG_COMPUTE_TIMEOUT_SECONDS=90
+LANGCLAW_USAGE_MARKUP_BPS=3000
+LANGCLAW_USAGE_VAULT_ADDRESS=
 OG_STORAGE_ENABLED=true
-OG_STORAGE_INDEXER_RPC=https://indexer-storage-testnet-turbo.0g.ai
-OG_STORAGE_RPC_URL=https://evmrpc-testnet.0g.ai
+OG_STORAGE_INDEXER_RPC=https://indexer-storage-turbo.0g.ai
+OG_STORAGE_RPC_URL=https://evmrpc.0g.ai
 OG_STORAGE_PRIVATE_KEY=
 OG_PRIVATE_KEY=
 OG_CHAIN_ENABLED=true
-OG_CHAIN_RPC_URL=https://evmrpc-testnet.0g.ai
-OG_CHAIN_ID=16602
-OG_CHAIN_EXPLORER_URL=https://chainscan-galileo.0g.ai
-OG_STORAGE_EXPLORER_URL=https://storagescan-galileo.0g.ai
+OG_CHAIN_RPC_URL=https://evmrpc.0g.ai
+OG_CHAIN_ID=16661
+OG_CHAIN_EXPLORER_URL=https://chainscan.0g.ai
+OG_STORAGE_EXPLORER_URL=https://storagescan.0g.ai
 OG_RPC_URL=
 SIGNALGRAPH_REGISTRY_ADDRESS=
 ```
@@ -453,13 +458,13 @@ supabase/migrations/20260514150000_langclaw_chat_memory.sql
 
 The schema enables RLS on all Langclaw tables. No public table policies are added because chat writes go through the server route.
 
-Deploy the registry contract after the wallet has 0G testnet tokens:
+Deploy the registry contract after the wallet has 0G mainnet tokens:
 
 ```bash
 npm run deploy:registry
 ```
 
-Copy the printed `SIGNALGRAPH_REGISTRY_ADDRESS` into `.env`, then restart the backend.
+The deploy script loads `.env.local` and `.env`. Copy the printed `SIGNALGRAPH_REGISTRY_ADDRESS` into the active env file, then restart the backend.
 
 ## Reviewer Notes
 

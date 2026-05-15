@@ -48,6 +48,7 @@ type WorkflowStepDefinition = {
 
 type WorkflowOptions = {
   onEvent?: (event: WorkflowProgressEvent) => void | Promise<void>;
+  requestedModel?: unknown;
 };
 
 type TraceOverrides = Record<string, Partial<OrchestrationStep>>;
@@ -323,6 +324,7 @@ export async function runSignalGraphWorkflow(
     runtime,
     steps: traceBeforeAnswer,
     agentOutputs,
+    requestedModel: options.requestedModel,
   });
   const synthesis = computeSynthesis.finalAnswer
     ? computeSynthesis
@@ -660,18 +662,39 @@ async function emitProgress(
     return;
   }
 
-  await options.onEvent({
+  await options.onEvent(buildWorkflowProgressEvent(step, status, summary, meta));
+}
+
+export function buildWorkflowProgressEvent(
+  step: WorkflowStepDefinition,
+  status: WorkflowProgressEvent["status"],
+  summary: string,
+  meta?: {
+    execution?: StepExecution;
+    model?: string;
+    sessionId?: string;
+    error?: string;
+  }
+): WorkflowProgressEvent {
+  const timestamp = new Date().toISOString();
+  const completed =
+    status === "complete" || status === "failed" ? timestamp : undefined;
+
+  return {
     stepId: step.stepId,
     agent: step.agent,
     skill: step.skill,
     status,
     summary,
-    timestamp: new Date().toISOString(),
+    timestamp,
+    startedAt: timestamp,
+    completedAt: completed,
+    durationMs: completed ? 0 : undefined,
     execution: meta?.execution,
     model: meta?.model,
     sessionId: meta?.sessionId,
     error: meta?.error,
-  });
+  };
 }
 
 function traceFromMeta(
@@ -842,18 +865,18 @@ function buildFinalConclusion(
       ? `SignalGraph found ${sources.length} live sources and routed the run through ${runtimeText}. The strongest ranked direction is ${topTrend}.`
       : `SignalGraph could not build a strong final conclusion because no live source cards were returned. Review provider setup, topic wording, or provider availability before using this run as evidence.`,
     keySignals: [
-      buildSignal("Public signal", xSource, "No X signal returned for this topic."),
-      buildSignal(
+      buildConclusionSignal("Public signal", xSource, "No X signal returned for this topic."),
+      buildConclusionSignal(
         "Builder signal",
         githubSource,
         "No GitHub repository signal returned for this topic."
       ),
-      buildSignal(
+      buildConclusionSignal(
         "Reference signal",
         docsSource,
         "No docs or reference page returned for this topic."
       ),
-      buildSignal(
+      buildConclusionSignal(
         "HackQuest angle",
         hackQuestSource,
         "No HackQuest hackathon or project page returned for this topic."
@@ -938,11 +961,16 @@ function withFallbackCaveat(answer: FinalAnswer, meta: FinalAnswerMeta) {
   };
 }
 
-function buildSignal(label: string, source: SourceCard | undefined, fallback: string) {
+export function buildConclusionSignal(
+  label: string,
+  source: SourceCard | undefined,
+  fallback: string
+) {
   return {
     label,
     text: source ? cleanText(source.title) : fallback,
     sourceId: source?.id,
+    sourceIds: source ? [source.id] : [],
   };
 }
 
