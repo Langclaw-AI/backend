@@ -1,4 +1,5 @@
 import type { DirectChatPayload } from "../lib/chat-sessions";
+import { runOnChainToolWorkflow } from "../lib/onchain-tools/workflow";
 import type { WalletAuthInput } from "../lib/server/wallet-auth";
 import { runSignalGraphWorkflow } from "../lib/signalgraph/workflow";
 import type { WorkflowProgressEvent } from "../lib/signalgraph/types";
@@ -23,6 +24,7 @@ type ChatRequestBody = {
   messages?: unknown;
   researchTrend?: unknown;
   sessionId?: unknown;
+  toolMode?: unknown;
   useAgent?: unknown;
   wallet?: WalletAuthInput;
   model?: unknown;
@@ -57,7 +59,8 @@ export async function handleChatStream(request: Request) {
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const context = readContextMessages(body.messages);
-  const useAgent = body.researchTrend === true || body.useAgent === true;
+  const toolMode = readToolMode(body.toolMode, body.researchTrend);
+  const useAgent = toolMode === "research" || body.useAgent === true;
 
   if (!message) {
     return Response.json({ error: "Message is required." }, { status: 400 });
@@ -67,7 +70,10 @@ export async function handleChatStream(request: Request) {
 
   if (useAgent) {
     try {
-      reservation = await reserveResearchUsage(body.wallet ?? {});
+      reservation = await reserveResearchUsage({
+        request,
+        wallet: body.wallet ?? {},
+      });
     } catch (error) {
       return usageErrorResponse(error);
     }
@@ -106,6 +112,33 @@ export async function handleChatStream(request: Request) {
       try {
         stopIfAborted();
 
+        if (toolMode === "onchain") {
+          const result = await runOnChainToolWorkflow({
+            context,
+            message,
+            signal: request.signal,
+            onToolCall: (event) => {
+              stopIfAborted();
+              write({ type: "tool_call", event });
+            },
+            onToolPlan: (plan) => {
+              stopIfAborted();
+              write({ type: "tool_plan", plan });
+            },
+            onToolResult: (event) => {
+              stopIfAborted();
+              write({ type: "tool_result", event });
+            },
+          });
+
+          stopIfAborted();
+          write({
+            type: "tool_final",
+            payload: result.payload,
+          });
+          return;
+        }
+
         if (!useAgent) {
           let streamedAnswer = "";
           const direct = await streamDirectChatWithZeroGCompute({
@@ -132,6 +165,7 @@ export async function handleChatStream(request: Request) {
               source: direct.source,
               teeVerified: direct.teeVerified,
               teeVerification: direct.teeVerification,
+              usage: direct.usage,
               usedModel: direct.usedModel,
             } satisfies DirectChatPayload,
           });
@@ -289,4 +323,16 @@ function isContextualFollowUp(message: string) {
   return /\b(itu|tadi|sebelumnya|lanjut|lanjutkan|same|that|previous|di atas|tersebut)\b/i.test(
     message
   );
+}
+
+function readToolMode(toolMode: unknown, researchTrend: unknown) {
+  if (toolMode === "onchain") {
+    return "onchain";
+  }
+
+  if (toolMode === "research" || researchTrend === true) {
+    return "research";
+  }
+
+  return "chat";
 }

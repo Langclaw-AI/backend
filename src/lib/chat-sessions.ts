@@ -1,5 +1,12 @@
 import type { DiscoverPayload, WorkflowProgressEvent } from "./signalgraph/types";
-import type { RouterTeeVerification } from "./zero-g/router";
+import type { UsageMeter } from "./usage-pricing";
+import type { RouterTeeVerification, RouterTokenUsage } from "./zero-g/router";
+
+export type DirectChatUsage = RouterTokenUsage & {
+  meter: UsageMeter;
+  model: string;
+  totalCostNeuron?: string;
+};
 
 export type DirectChatPayload = {
   answer: string;
@@ -12,6 +19,7 @@ export type DirectChatPayload = {
   teeVerified?: boolean | null;
   teeVerification?: RouterTeeVerification;
   title?: string;
+  usage?: DirectChatUsage;
 };
 
 export type StoredChatMessage = {

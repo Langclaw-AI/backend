@@ -3,8 +3,10 @@ import test from "node:test";
 
 import {
   applyMarkupNeuron,
+  buildUsageMeter,
   calculateMarkupNeuron,
   calculateTokenCostNeuron,
+  formatUsageModelLabel,
   mapUiTokenUsage,
   readUsageMarkupBps,
   selectUsageCost,
@@ -92,4 +94,65 @@ test("maps token usage into UI-ready fields while keeping legacy fields", () => 
       totalTokens: 18,
     }
   );
+});
+
+test("builds usage meter data for the model badge and detail popover", () => {
+  const meter = buildUsageMeter({
+    model: "openai/gpt-5-mini",
+    tokenUsage: {
+      inputTokens: 563,
+      outputTokens: 149,
+      reasoningTokens: 128,
+    },
+    totalConsumeNeuron: "439",
+  });
+
+  assert.equal(meter.modelLabel, "GPT-5 mini");
+  assert.equal(meter.badge.modelLabel, "GPT-5 mini");
+  assert.equal(meter.badge.totalConsumeLabel, "439");
+  assert.equal(meter.outputDetails.totalTokens, 149);
+  assert.deepEqual(
+    meter.outputDetails.items.map((item) => [item.key, item.tokens]),
+    [
+      ["deep_thinking", 128],
+      ["text_output", 21],
+    ]
+  );
+  assert.equal(meter.consumeDetails.totalTokens, 712);
+  assert.deepEqual(
+    meter.consumeDetails.items.map((item) => [item.key, item.tokens]),
+    [
+      ["uncached_input", 563],
+      ["output", 149],
+    ]
+  );
+  assert.equal(meter.tokenCost, 712);
+  assert.equal(meter.totalConsumeNeuron, "439");
+});
+
+test("usage meter excludes cached input from token cost", () => {
+  const meter = buildUsageMeter({
+    model: "custom-chat",
+    tokenUsage: {
+      cachedInputTokens: 3,
+      inputTokens: 11,
+      outputTokens: 7,
+    },
+    totalConsumeNeuron: "57",
+  });
+
+  assert.equal(meter.consumeDetails.totalTokens, 15);
+  assert.equal(meter.consumeDetails.cachedInputTokens, 3);
+  assert.deepEqual(
+    meter.consumeDetails.items.map((item) => [item.key, item.tokens]),
+    [
+      ["uncached_input", 8],
+      ["output", 7],
+    ]
+  );
+});
+
+test("formats GPT model labels for compact backend display data", () => {
+  assert.equal(formatUsageModelLabel("gpt-5-mini"), "GPT-5 mini");
+  assert.equal(formatUsageModelLabel("openai/gpt-4o-mini"), "GPT-4o mini");
 });

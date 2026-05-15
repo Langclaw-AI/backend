@@ -32,9 +32,11 @@ export async function handleDiscoverStream(request: Request) {
     );
   }
 
-  const reservation = await reserveResearchUsage(wallet).catch((error) => ({
-    error,
-  }));
+  const reservation = await reserveResearchUsage({ request, wallet }).catch(
+    (error) => ({
+      error,
+    })
+  );
 
   if ("error" in reservation) {
     return usageErrorResponse(reservation.error);

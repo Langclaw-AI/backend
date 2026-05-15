@@ -35,7 +35,7 @@ export async function handleDiscover(request: Request) {
   }
 
   try {
-    reservation = await reserveResearchUsage(wallet);
+    reservation = await reserveResearchUsage({ request, wallet });
     const payload = await runSignalGraphWorkflow(topic);
     payload.usage = await settleResearchUsage({
       computeStatus: payload.zeroG?.compute?.status,

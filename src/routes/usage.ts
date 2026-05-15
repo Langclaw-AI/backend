@@ -26,7 +26,10 @@ export async function handleUsageBalance(request: Request) {
   }
 
   try {
-    const payload = await readUsageBalance(body.wallet ?? {});
+    const payload = await readUsageBalance({
+      request,
+      wallet: body.wallet ?? {},
+    });
 
     return Response.json(payload);
   } catch (error) {

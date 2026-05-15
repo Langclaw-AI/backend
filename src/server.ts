@@ -11,6 +11,15 @@ import { handleChatSessions } from "./routes/chat-sessions";
 import { handleChatStream } from "./routes/chat-stream";
 import { handleDiscover } from "./routes/discover";
 import { handleDiscoverStream } from "./routes/discover-stream";
+import { handleApiKeys } from "./routes/api-keys";
+import {
+  handleAutomationRuns,
+  handleAutomationSettings,
+  handleAutomationTasks,
+  handleAutomationNotifications,
+  handleAutomationTelegramWebhook,
+  handleAutomationWebhook,
+} from "./routes/automation";
 import {
   handleUsageBalance,
   handleUsageDepositVerify,
@@ -33,6 +42,12 @@ import {
 type RouteHandler = (request: Request) => Promise<Response> | Response;
 
 const routes = new Map<string, RouteHandler>([
+  ["POST /api/api-keys", handleApiKeys],
+  ["POST /api/automation/runs", handleAutomationRuns],
+  ["POST /api/automation/settings", handleAutomationSettings],
+  ["POST /api/automation/tasks", handleAutomationTasks],
+  ["POST /api/automation/notifications", handleAutomationNotifications],
+  ["POST /api/automation/telegram/webhook", handleAutomationTelegramWebhook],
   ["POST /api/chat/sessions", handleChatSessions],
   ["POST /api/chat/stream", handleChatStream],
   ["POST /api/discover", handleDiscover],
@@ -47,6 +62,12 @@ const routes = new Map<string, RouteHandler>([
   ["POST /api/0g/images/generations", handleZeroGImageGeneration],
   ["POST /api/0g/async/images/generations", handleZeroGAsyncImageGeneration],
   ["POST /api/0g/audio/transcriptions", handleZeroGAudioTranscription],
+  ["GET /v1/models", handleZeroGModels],
+  ["GET /v1/providers", handleZeroGProviders],
+  ["POST /v1/chat/completions", handleZeroGChatCompletions],
+  ["POST /v1/images/generations", handleZeroGImageGeneration],
+  ["POST /v1/async/images/generations", handleZeroGAsyncImageGeneration],
+  ["POST /v1/audio/transcriptions", handleZeroGAudioTranscription],
   ["GET /api/0g/admin/account/balance", handleZeroGAdminAccountBalance],
   ["GET /api/0g/admin/account/usage/stats", handleZeroGAdminUsageStats],
   ["GET /api/0g/admin/account/usage/history", handleZeroGAdminUsageHistory],
@@ -87,10 +108,24 @@ async function handleRequest(
 
     if (
       request.method === "GET" &&
-      url.pathname.startsWith("/api/0g/async/jobs/")
+      (url.pathname.startsWith("/api/0g/async/jobs/") ||
+        url.pathname.startsWith("/v1/async/jobs/"))
     ) {
       const webRequest = createWebRequest(request, url);
       const webResponse = await handleZeroGAsyncJob(webRequest);
+      await writeWebResponse(response, webResponse);
+      return;
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname.startsWith("/api/automation/webhooks/")
+    ) {
+      const slug = decodeURIComponent(
+        url.pathname.slice("/api/automation/webhooks/".length)
+      );
+      const webRequest = createWebRequest(request, url);
+      const webResponse = await handleAutomationWebhook(webRequest, slug);
       await writeWebResponse(response, webResponse);
       return;
     }

@@ -43,7 +43,7 @@ test("inference route without wallet returns 401", async () => {
         assert.equal(response.status, 401);
         assert.match(
           (await response.json() as { error: string }).error,
-          /Wallet signature is required/
+          /Wallet signature or API key is required/
         );
       }
     );
@@ -94,7 +94,7 @@ test("chat route accepts Playground-supported model parameters", async () => {
         assert.equal(response.status, 401);
         assert.match(
           (await response.json() as { error: string }).error,
-          /Wallet signature is required/
+          /Wallet signature or API key is required/
         );
       }
     );

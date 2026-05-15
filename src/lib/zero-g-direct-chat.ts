@@ -7,6 +7,7 @@ import {
   streamChatCompletion,
   type RouterChatMessage,
 } from "./zero-g/router";
+import { buildUsageMeter, mapUiTokenUsage } from "./usage-pricing";
 
 export type DirectChatContextMessage = {
   role: "assistant" | "user";
@@ -79,6 +80,11 @@ export async function streamDirectChatWithZeroGCompute({
       source: "0g-compute" as const,
       teeVerified: result.trace?.teeVerified,
       teeVerification: result.teeVerification,
+      usage: buildDirectChatUsage({
+        model,
+        tokenUsage: result.usage,
+        totalCostNeuron: result.trace?.billing?.totalCostNeuron,
+      }),
       usedModel: selection.usedModel,
     };
   } catch (error) {
@@ -100,6 +106,33 @@ export async function streamDirectChatWithZeroGCompute({
       usedModel: selection.usedModel,
     };
   }
+}
+
+function buildDirectChatUsage({
+  model,
+  tokenUsage,
+  totalCostNeuron,
+}: {
+  model: string;
+  tokenUsage?: Parameters<typeof mapUiTokenUsage>[0];
+  totalCostNeuron?: string;
+}) {
+  if (!tokenUsage && !totalCostNeuron) {
+    return undefined;
+  }
+
+  const uiTokenUsage = mapUiTokenUsage(tokenUsage);
+
+  return {
+    ...uiTokenUsage,
+    meter: buildUsageMeter({
+      model,
+      tokenUsage: uiTokenUsage,
+      totalConsumeNeuron: totalCostNeuron,
+    }),
+    model,
+    totalCostNeuron,
+  };
 }
 
 function buildMessages(
