@@ -59,7 +59,7 @@ export function createRunId() {
 }
 
 export function createStepSessionId(runId: string, stepId: string) {
-  return `signalgraph-${runId}-${stepId}`;
+  return `langclaw-${runId}-${stepId}`;
 }
 
 export function shouldRunOpenClawWorkflow(openClawAvailable: boolean) {
@@ -281,7 +281,7 @@ function buildPrompt({
   requiredShape: Record<string, unknown>;
 }) {
   return [
-    `You are SignalGraph's ${agent}.`,
+    `You are Langclaw's ${agent}.`,
     "Use the local skill instructions below.",
     "Use only the input JSON. Do not invent sources, URLs, metrics, uploads, CIDs, transactions, or dates.",
     "Return only valid JSON. Do not wrap it in markdown. Do not add commentary outside JSON.",
@@ -387,7 +387,7 @@ function buildFallbackEvidenceOutput(
   return {
     bundleSummary: `Prepared an evidence bundle for "${topic}" with ${sources.length} source card${sources.length === 1 ? "" : "s"} and ${claimMap.length} mapped claim${claimMap.length === 1 ? "" : "s"}.`,
     storageStatus: "prepared",
-    evidenceUri: `0g://storage/signalgraph/${hashShort(topic)}-prepared`,
+    evidenceUri: `0g://storage/langclaw/${hashShort(topic)}-prepared`,
     claimMap,
   };
 }

@@ -2,7 +2,7 @@
 
 ## Role
 
-Normalize every discovered item into the SignalGraph `SourceCard` model.
+Normalize every discovered item into the Langclaw `SourceCard` model.
 
 ## Input
 

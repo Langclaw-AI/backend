@@ -1,4 +1,4 @@
-# SignalGraph Demo Script
+# Langclaw Demo Script
 
 Use this script for the 3 minute HackQuest video.
 
@@ -7,12 +7,12 @@ Use this script for the 3 minute HackQuest video.
 Say:
 
 ```text
-Teams waste hours reading noisy public signals before they decide what to build. SignalGraph turns one topic into live X, GitHub, Docs, and HackQuest signals for a verified trend brief.
+Teams waste hours reading noisy public signals before they decide what to build. Langclaw turns one topic into live X, GitHub, Docs, and HackQuest signals for a verified trend brief.
 ```
 
 Show:
 
-- SignalGraph AI chat
+- Langclaw AI chat
 - Track 1 badge
 - Product one-liner
 
@@ -21,14 +21,14 @@ Show:
 Say:
 
 ```text
-I enter one topic. SignalGraph uses OpenClaw as the reasoning layer. Planner, Trend Scorer, Evidence Packager, Verifier, and Final Conclusion run through OpenClaw agent sessions.
+I enter one topic. Langclaw uses OpenClaw as the reasoning layer. Planner, Trend Scorer, Evidence Packager, Verifier, and Final Conclusion run through OpenClaw agent sessions.
 ```
 
 Show:
 
 - Chat history sidebar
 - New Chat button
-- SignalGraph AI chat composer
+- Langclaw AI chat composer
 - Suggested topic prompts
 - Send button
 
@@ -77,7 +77,7 @@ Show:
 Say:
 
 ```text
-The Web3 layer is now transaction-ready. SignalGraph builds a canonical evidence bundle, uploads it to 0G Storage when wallet envs are enabled, then anchors the final brief hash and storage URI through the SignalGraphRegistry contract on 0G Chain.
+The Web3 layer is now transaction-ready. Langclaw builds a canonical evidence bundle, uploads it to 0G Storage when wallet envs are enabled, then anchors the final brief hash and storage URI through the LangclawRegistry contract on 0G Chain.
 ```
 
 Show:
@@ -94,7 +94,7 @@ Show:
 Say:
 
 ```text
-SignalGraph is an agentic research layer for X-native teams. It gives them fast strategy, clear evidence, and verifiable AI output.
+Langclaw is an agentic research layer for X-native teams. It gives them fast strategy, clear evidence, and verifiable AI output.
 ```
 
 Show:

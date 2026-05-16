@@ -69,7 +69,7 @@ export async function synthesizeFinalAnswerWithZeroGCompute(
         {
           role: "system",
           content:
-            "You are SignalGraph's Final Conclusion Agent. Return only valid JSON.",
+            "You are Langclaw's Final Conclusion Agent. Return only valid JSON.",
         },
         {
           role: "user",

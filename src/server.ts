@@ -91,7 +91,7 @@ const server = createServer((request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`SignalGraph backend listening on http://${host}:${port}`);
+  console.log(`Langclaw backend listening on http://${host}:${port}`);
 });
 
 async function handleRequest(
@@ -111,7 +111,7 @@ async function handleRequest(
     if (request.method === "GET" && url.pathname === "/health") {
       await writeWebResponse(
         response,
-        Response.json({ ok: true, service: "signalgraph-backend" }),
+        Response.json({ ok: true, service: "langclaw-backend" }),
       );
       return;
     }

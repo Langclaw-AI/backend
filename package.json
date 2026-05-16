@@ -1,5 +1,5 @@
 {
-  "name": "signalgraph-backend",
+  "name": "langclaw-backend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "npm run clean && tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "deploy:registry": "node scripts/deploy-signalgraph-registry.mjs",
+    "deploy:registry": "node scripts/deploy-langclaw-registry.mjs",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "test:watch": "node --import tsx --test --watch \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"

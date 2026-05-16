@@ -48,7 +48,7 @@ The contract should not handle:
 - 0G Router billing.
 - 0G Direct account-management or provider sub-account funding.
 - Research output proof.
-- `SignalGraphRegistry` changes.
+- `LangclawRegistry` changes.
 
 Backend ledger remains the source of truth for app usage balance.
 
@@ -205,9 +205,9 @@ The 0G Direct account-management flow is out of scope for this contract:
 - `broker.ledger.retrieveFund("inference")`
 - `broker.ledger.refund(amount)`
 
-## Do Not Change SignalGraphRegistry
+## Do Not Change LangclawRegistry
 
-`SignalGraphRegistry` is only for research proof.
+`LangclawRegistry` is only for research proof.
 
 It stores:
 
@@ -216,7 +216,7 @@ It stores:
 - Creator wallet.
 - Timestamp.
 
-Do not add deposit logic to `SignalGraphRegistry`. Keep payment vault logic in `LangclawUsageVault`.
+Do not add deposit logic to `LangclawRegistry`. Keep payment vault logic in `LangclawUsageVault`.
 
 ## Acceptance Checklist
 
@@ -234,4 +234,4 @@ Before handing the contract to backend, confirm:
 - Withdrawal cannot release funds already spent in the backend ledger.
 - Withdrawal is protected against reentrancy.
 - Replay protection exists for backend-authorized withdrawals, if used.
-- `SignalGraphRegistry` remains unchanged.
+- `LangclawRegistry` remains unchanged.

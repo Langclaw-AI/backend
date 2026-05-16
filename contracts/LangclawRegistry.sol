@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract SignalGraphRegistry {
+contract LangclawRegistry {
     struct BriefRecord {
         bytes32 briefHash;
         string storageUri;

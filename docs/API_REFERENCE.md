@@ -95,7 +95,7 @@ Response:
 ```json
 {
   "ok": true,
-  "service": "signalgraph-backend"
+  "service": "langclaw-backend"
 }
 ```
 

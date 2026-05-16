@@ -1,4 +1,4 @@
-import { runSignalGraphWorkflow } from "../lib/signalgraph/workflow";
+import { runLangclawWorkflow } from "../lib/langclaw/workflow";
 import type { WalletAuthInput } from "../lib/server/wallet-auth";
 import {
   refundResearchUsage,
@@ -36,7 +36,7 @@ export async function handleDiscover(request: Request) {
 
   try {
     reservation = await reserveResearchUsage({ request, wallet });
-    const payload = await runSignalGraphWorkflow(topic);
+    const payload = await runLangclawWorkflow(topic);
     payload.usage = await settleResearchUsage({
       computeStatus: payload.zeroG?.compute?.status,
       reservation,

@@ -36,7 +36,7 @@ export async function synthesizeFinalAnswerWithOpenClaw(
   const requestedSessionId =
     input.sessionId ||
     process.env.OPENCLAW_AGENT_SESSION_ID ||
-    "signalgraph-final-answer";
+    "langclaw-final-answer";
 
   if (process.env.OPENCLAW_ENABLED !== "true") {
     return {
@@ -126,7 +126,7 @@ export function buildFinalAnswerPrompt(input: OpenClawFinalAnswerInput) {
   };
 
   return [
-    "You are SignalGraph's Final Conclusion Agent.",
+    "You are Langclaw's Final Conclusion Agent.",
     "Write the final answer as a natural AI chat response, not a dashboard card.",
     "Use polished ChatGPT-style structure: one concise opening paragraph, 2-6 scannable bullets, and short recommendation/caveat text.",
     "Do not write dense paragraphs. Do not put markdown tables into JSON string fields unless they are necessary and valid.",

@@ -367,7 +367,7 @@ async function discoverHackQuestDirectory(): Promise<ProviderResult> {
     const response = await fetch("https://www.hackquest.io/hackathons", {
       headers: {
         Accept: "text/html",
-        "User-Agent": "SignalGraphBot/0.1",
+        "User-Agent": "LangclawBot/0.1",
       },
       cache: "no-store",
       signal: AbortSignal.timeout(12000),

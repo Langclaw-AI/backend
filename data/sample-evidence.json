@@ -3,7 +3,7 @@
   "objective": "Find the strongest AI x Web3 product trend this week and suggest one build angle for a hackathon team.",
   "createdAt": "2026-05-12T15:30:00+07:00",
   "project": {
-    "name": "SignalGraph",
+    "name": "Langclaw",
     "track": "Track 1: Agentic Infrastructure & OpenClaw Lab",
     "summary": "A verifiable multi-agent trend research engine for X-native teams."
   },
@@ -62,7 +62,7 @@
   },
   "finalConclusion": {
     "headline": "AI x Web3 agent research has enough signal for a verifiable build angle.",
-    "summary": "SignalGraph found source-backed evidence for a multi-agent research workflow that stores evidence and prepares on-chain verification.",
+    "summary": "Langclaw found source-backed evidence for a multi-agent research workflow that stores evidence and prepares on-chain verification.",
     "keySignals": [
       {
         "label": "HackQuest angle",
@@ -80,7 +80,7 @@
         "sourceId": "storage_overview"
       }
     ],
-    "recommendation": "Frame SignalGraph as a verifiable agent research workflow where OpenClaw routes the agents and 0G stores the evidence.",
+    "recommendation": "Frame Langclaw as a verifiable agent research workflow where OpenClaw routes the agents and 0G stores the evidence.",
     "qualityNote": "Sample evidence uses curated demo sources. Live runs should rely on discoveredSources from the provider workflow.",
     "generatedBy": "Final Conclusion Agent"
   },
@@ -92,7 +92,7 @@
       "0G Storage cocok untuk evidence bundle dan research memory.",
       "0G Compute Router bisa memperkuat cerita inference agent."
     ],
-    "recommendation": "Jelaskan SignalGraph sebagai AI research assistant berbasis agent: OpenClaw mengatur agent, SignalGraph mencari evidence, dan 0G menyimpan proof.",
+    "recommendation": "Jelaskan Langclaw sebagai AI research assistant berbasis agent: OpenClaw mengatur agent, Langclaw mencari evidence, dan 0G menyimpan proof.",
     "caveat": "Sample ini memakai curated demo sources. Live run harus memakai discoveredSources dari provider workflow.",
     "generatedBy": "Final Conclusion Agent"
   },
@@ -169,16 +169,16 @@
     },
     "synthesis": {
       "briefTitle": "Agent swarm research is the strongest build angle.",
-      "recommendation": "Build SignalGraph as a verifiable trend research engine with stored evidence and on-chain proof."
+      "recommendation": "Build Langclaw as a verifiable trend research engine with stored evidence and on-chain proof."
     },
     "verifier": {
       "unsupportedClaims": [],
       "briefHash": "0x91af8c4e2bb90452a9f4f221982a67bb6a6e3d02b42f87d8a2e9a1e4c33f918a",
-      "storageUri": "0g://storage/signalgraph/demo-run-001"
+      "storageUri": "0g://storage/langclaw/demo-run-001"
     },
     "finalConclusion": {
       "headline": "AI x Web3 agent research has enough signal for a verifiable build angle.",
-      "recommendation": "Use SignalGraph as the demo framing for OpenClaw plus 0G evidence storage."
+      "recommendation": "Use Langclaw as the demo framing for OpenClaw plus 0G evidence storage."
     }
   },
   "brief": {

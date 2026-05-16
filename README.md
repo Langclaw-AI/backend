@@ -1,12 +1,12 @@
 # Langclaw Backend
 
-Node.js HTTP API (`signalgraph-backend`) for Langclaw and **SignalGraph**: agent workflows, 0G integrations, Supabase persistence, usage billing, and OpenAI-compatible 0G Compute proxy.
+Node.js HTTP API (`langclaw-backend`) for Langclaw and **Langclaw**: agent workflows, 0G integrations, Supabase persistence, usage billing, and OpenAI-compatible 0G Compute proxy.
 
 **Organization:** [Langclaw-AI](https://github.com/Langclaw-AI) · **Frontend:** [Langclaw-AI/frontend](https://github.com/Langclaw-AI/frontend) · **Contracts:** [Langclaw-AI/contracts](https://github.com/Langclaw-AI/contracts)
 
 ## Responsibilities
 
-- **SignalGraph** — `runSignalGraphWorkflow(topic)` via `POST /api/discover` and `/api/discover/stream`
+- **Langclaw** — `runLangclawWorkflow(topic)` via `POST /api/discover` and `/api/discover/stream`
 - **Chat** — `POST /api/chat/stream`, session sync to Supabase
 - **Account** — wallet auth, API keys (HMAC), memory, automation, usage ledger
 - **0G** — Compute Router proxy (`/v1/*`), Storage uploads, Chain registry calls
@@ -49,12 +49,12 @@ Defined in [`src/server.ts`](src/server.ts):
 
 Full request/response shapes: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md).
 
-## SignalGraph + OpenClaw
+## Langclaw + OpenClaw
 
 OpenClaw runs reasoning steps (`openclaw agent --json`); discovery and provider calls stay in TypeScript.
 
 ```text
-runSignalGraphWorkflow(topic)
+runLangclawWorkflow(topic)
   → Planner (OpenClaw)
   → Discovery (TS: X/Brave, GitHub, Tavily, HackQuest)
   → Source normalizer (TS)
@@ -62,7 +62,7 @@ runSignalGraphWorkflow(topic)
   → Evidence packager (OpenClaw)
   → Verifier (OpenClaw)
   → Final conclusion (0G Compute → OpenClaw → fallback)
-  → 0G Storage upload → SignalGraphRegistry anchor
+  → 0G Storage upload → LangclawRegistry anchor
 ```
 
 Skills: [`openclaw/skills/`](openclaw/skills/) — see [`openclaw/README.md`](openclaw/README.md).
@@ -96,9 +96,9 @@ Copy [`.env.example`](.env.example). Minimum for a useful dev server:
 | `OG_COMPUTE_API_KEY`, `OG_COMPUTE_ENABLED` | Model proxy |
 | `CORS_ORIGIN` | Frontend origin (default `http://localhost:3000`) |
 
-SignalGraph providers: `BRAVE_SEARCH_API_KEY`, `GITHUB_TOKEN`, `TAVILY_API_KEY`, …
+Langclaw providers: `BRAVE_SEARCH_API_KEY`, `GITHUB_TOKEN`, `TAVILY_API_KEY`, …
 
-0G proof: `OG_STORAGE_*`, `OG_CHAIN_*`, `SIGNALGRAPH_REGISTRY_ADDRESS`
+0G proof: `OG_STORAGE_*`, `OG_CHAIN_*`, `LANGCLAW_REGISTRY_ADDRESS`
 
 Billing: `LANGCLAW_USAGE_VAULT_ADDRESS` — deploy from [Langclaw-AI/contracts](https://github.com/Langclaw-AI/contracts)
 
@@ -111,9 +111,9 @@ Apply migrations under [`supabase/migrations/`](supabase/migrations/). Clients n
 | Contract | Deploy | Env |
 | -------- | ------ | --- |
 | `LangclawUsageVault` | [Langclaw-AI/contracts](https://github.com/Langclaw-AI/contracts) | `LANGCLAW_USAGE_VAULT_ADDRESS` |
-| `SignalGraphRegistry` | `npm run deploy:registry` | `SIGNALGRAPH_REGISTRY_ADDRESS` |
+| `LangclawRegistry` | `npm run deploy:registry` | `LANGCLAW_REGISTRY_ADDRESS` |
 
-Registry source: [`contracts/SignalGraphRegistry.sol`](contracts/SignalGraphRegistry.sol)
+Registry source: [`contracts/LangclawRegistry.sol`](contracts/LangclawRegistry.sol)
 
 Deposit verification: [`src/lib/usage.ts`](src/lib/usage.ts) → `POST /api/usage/deposit/verify`
 
@@ -134,6 +134,6 @@ npm run deploy:registry
 | File | Description |
 | ---- | ----------- |
 | [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | Full API |
-| [`SIGNALGRAPH_BLUEPRINT.md`](SIGNALGRAPH_BLUEPRINT.md) | Hackathon blueprint |
+| [`LANGCLAW_BLUEPRINT.md`](LANGCLAW_BLUEPRINT.md) | Hackathon blueprint |
 | [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) | Demo video script |
 | [`docs/SMART_CONTRACT_TEAM_NOTES.md`](docs/SMART_CONTRACT_TEAM_NOTES.md) | Vault requirements |

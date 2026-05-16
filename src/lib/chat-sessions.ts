@@ -1,4 +1,4 @@
-import type { DiscoverPayload, WorkflowProgressEvent } from "./signalgraph/types";
+import type { DiscoverPayload, WorkflowProgressEvent } from "./langclaw/types";
 import type { OnChainToolFinalPayload } from "./onchain-tools/types";
 import type { UsageMeter } from "./usage-pricing";
 import type { RouterTeeVerification, RouterTokenUsage } from "./zero-g/router";

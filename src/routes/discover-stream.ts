@@ -1,4 +1,4 @@
-import { runSignalGraphWorkflow } from "../lib/signalgraph/workflow";
+import { runLangclawWorkflow } from "../lib/langclaw/workflow";
 import type { WalletAuthInput } from "../lib/server/wallet-auth";
 import {
   refundResearchUsage,
@@ -52,7 +52,7 @@ export async function handleDiscoverStream(request: Request) {
       };
 
       try {
-        const payload = await runSignalGraphWorkflow(topic, {
+        const payload = await runLangclawWorkflow(topic, {
           onEvent: (event) => {
             write({ type: "progress", event });
           },

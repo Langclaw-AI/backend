@@ -5,8 +5,8 @@ import {
   requireAccountAuth,
 } from "../lib/server/account-auth";
 import type { WalletAuthInput } from "../lib/server/wallet-auth";
-import { runSignalGraphWorkflow } from "../lib/signalgraph/workflow";
-import type { WorkflowProgressEvent } from "../lib/signalgraph/types";
+import { runLangclawWorkflow } from "../lib/langclaw/workflow";
+import type { WorkflowProgressEvent } from "../lib/langclaw/types";
 import {
   refundResearchUsage,
   reserveResearchUsage,
@@ -186,7 +186,7 @@ export async function handleChatStream(request: Request) {
         const topic = buildAgentTopic(message, context);
 
         write({ type: "mode", mode: "agent" });
-        const payload = await runSignalGraphWorkflow(
+        const payload = await runLangclawWorkflow(
           topic,
           buildChatWorkflowOptions(body.model, (event: WorkflowProgressEvent) => {
             stopIfAborted();

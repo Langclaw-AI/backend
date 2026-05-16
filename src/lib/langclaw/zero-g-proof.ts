@@ -73,7 +73,7 @@ const signalGraphRegistryAbi = [
   },
 ] as const;
 
-export async function persistSignalGraphProof(
+export async function persistLangclawProof(
   input: PersistProofInput
 ): Promise<ZeroGProof> {
   const evidenceBundle = buildEvidenceBundle(input);
@@ -99,7 +99,7 @@ export async function persistSignalGraphProof(
 
 function buildEvidenceBundle(input: PersistProofInput) {
   return {
-    schema: "signalgraph.evidence.v1",
+    schema: "langclaw.evidence.v1",
     runId: input.runId,
     topic: input.topic,
     generatedAt: input.generatedAt,
@@ -123,7 +123,7 @@ async function uploadEvidenceBundle({
   canonicalBundle: string;
   briefHash: Hex;
 }): Promise<ZeroGStorageProof> {
-  const preparedUri = `0g://storage/signalgraph/${briefHash.slice(2, 14)}-prepared`;
+  const preparedUri = `0g://storage/langclaw/${briefHash.slice(2, 14)}-prepared`;
   const indexerRpc =
     process.env.OG_STORAGE_INDEXER_RPC?.trim() || defaultStorageIndexer;
   const evmRpc =
@@ -150,7 +150,7 @@ async function uploadEvidenceBundle({
     };
   }
 
-  const tmpDir = await mkdtemp(join(tmpdir(), "signalgraph-0g-"));
+  const tmpDir = await mkdtemp(join(tmpdir(), "langclaw-0g-"));
   const filePath = join(tmpDir, `${safeFilePart(topic)}-${runId}.json`);
   let file: ZgFileHandle | undefined;
 
@@ -228,7 +228,7 @@ async function anchorBrief({
     process.env.OG_CHAIN_EXPLORER_URL || defaultChainExplorer
   );
   const privateKey = readPrivateKey();
-  const registryAddress = process.env.SIGNALGRAPH_REGISTRY_ADDRESS?.trim();
+  const registryAddress = process.env.LANGCLAW_REGISTRY_ADDRESS?.trim();
 
   if (process.env.OG_CHAIN_ENABLED !== "true") {
     return {
@@ -266,7 +266,7 @@ async function anchorBrief({
       briefHash,
       chainId,
       registryAddress,
-      error: "Set SIGNALGRAPH_REGISTRY_ADDRESS to the deployed SignalGraphRegistry address.",
+      error: "Set LANGCLAW_REGISTRY_ADDRESS to the deployed LangclawRegistry address.",
     };
   }
 

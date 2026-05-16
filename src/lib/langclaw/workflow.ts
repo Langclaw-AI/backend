@@ -13,7 +13,7 @@ import {
 } from "./openclaw-workflow";
 import { runProviderDiscovery } from "./providers";
 import { synthesizeFinalAnswerWithZeroGCompute } from "./zero-g-compute";
-import { persistSignalGraphProof } from "./zero-g-proof";
+import { persistLangclawProof } from "./zero-g-proof";
 import type {
   AgentOutputs,
   DiscoverPayload,
@@ -111,12 +111,12 @@ const workflowSteps: WorkflowStepDefinition[] = [
   {
     stepId: "0g-chain",
     agent: "0G Chain Anchor",
-    skill: "contracts/SignalGraphRegistry.sol",
+    skill: "contracts/LangclawRegistry.sol",
     pendingSummary: "Waiting to anchor the final brief hash on 0G Chain.",
   },
 ];
 
-export async function runSignalGraphWorkflow(
+export async function runLangclawWorkflow(
   topic: string,
   options: WorkflowOptions = {}
 ): Promise<DiscoverPayload> {
@@ -363,10 +363,10 @@ export async function runSignalGraphWorkflow(
     options,
     workflowSteps[9],
     "running",
-    "Preparing the final brief hash and submitting it to SignalGraphRegistry when enabled."
+    "Preparing the final brief hash and submitting it to LangclawRegistry when enabled."
   );
   const generatedAt = new Date().toISOString();
-  const proof = await persistSignalGraphProof({
+  const proof = await persistLangclawProof({
     runId,
     topic,
     generatedAt,
@@ -435,7 +435,7 @@ async function resolveOpenClawRuntime(): Promise<OpenClawProbe> {
     return {
       available: false,
       summary:
-        "OPENCLAW_ENABLED is false. SignalGraph used the built-in TypeScript OpenClaw-compatible runtime.",
+        "OPENCLAW_ENABLED is false. Langclaw used the built-in TypeScript OpenClaw-compatible runtime.",
     };
   }
 
@@ -580,10 +580,10 @@ function buildTraceSteps(
     }),
     withTraceOverride("0g-chain", traceOverrides, {
       agent: "0G Chain Anchor",
-      skill: "contracts/SignalGraphRegistry.sol",
+      skill: "contracts/LangclawRegistry.sol",
       status: "complete",
       summary:
-        "Prepared the final brief hash. Set OG_CHAIN_ENABLED=true and SIGNALGRAPH_REGISTRY_ADDRESS to anchor.",
+        "Prepared the final brief hash. Set OG_CHAIN_ENABLED=true and LANGCLAW_REGISTRY_ADDRESS to anchor.",
       execution: "deterministic-fallback",
     }),
   ];
@@ -790,7 +790,7 @@ function summarizeStorageProof(storage: ZeroGStorageProof) {
 
 function summarizeChainProof(chain: ZeroGChainProof) {
   if (chain.status === "anchored") {
-    return `Brief hash anchored on 0G Chain through SignalGraphRegistry. Transaction: ${chain.txHash}.`;
+    return `Brief hash anchored on 0G Chain through LangclawRegistry. Transaction: ${chain.txHash}.`;
   }
 
   if (chain.status === "failed") {
@@ -862,8 +862,8 @@ function buildFinalConclusion(
       ? `${topic} shows useful live signal across ${providerText}.`
       : `${topic} did not return enough live signal for a confident conclusion.`,
     summary: sources.length
-      ? `SignalGraph found ${sources.length} live sources and routed the run through ${runtimeText}. The strongest ranked direction is ${topTrend}.`
-      : `SignalGraph could not build a strong final conclusion because no live source cards were returned. Review provider setup, topic wording, or provider availability before using this run as evidence.`,
+      ? `Langclaw found ${sources.length} live sources and routed the run through ${runtimeText}. The strongest ranked direction is ${topTrend}.`
+      : `Langclaw could not build a strong final conclusion because no live source cards were returned. Review provider setup, topic wording, or provider availability before using this run as evidence.`,
     keySignals: [
       buildConclusionSignal("Public signal", xSource, "No X signal returned for this topic."),
       buildConclusionSignal(
@@ -883,7 +883,7 @@ function buildFinalConclusion(
       ),
     ],
     recommendation: sources.length
-      ? "Frame the demo around a verifiable agent research workflow: OpenClaw coordinates the agents, SignalGraph turns live sources into a final conclusion, and 0G stores the evidence bundle for later proof."
+      ? "Frame the demo around a verifiable agent research workflow: OpenClaw coordinates the agents, Langclaw turns live sources into a final conclusion, and 0G stores the evidence bundle for later proof."
       : "Run discovery again with a more specific topic, then use the final conclusion only after at least one provider returns live evidence.",
     qualityNote: errors.length
       ? `Partial result. ${errors.length} provider issue${errors.length === 1 ? "" : "s"} returned, so treat the conclusion as directional.`
@@ -931,7 +931,7 @@ function buildFinalAnswer(
 
   return {
     title: "Jawaban akhir",
-    answer: `Jawaban singkat: "${topic}" layak dipakai sebagai arah riset atau ide demo karena SignalGraph menemukan ${sourceCount} live sources dari ${providerText}. Pola terkuatnya adalah workflow AI agent yang bisa mencari sinyal, merangkum evidence, lalu menyiapkan hasilnya untuk diverifikasi.`,
+    answer: `Jawaban singkat: "${topic}" layak dipakai sebagai arah riset atau ide demo karena Langclaw menemukan ${sourceCount} live sources dari ${providerText}. Pola terkuatnya adalah workflow AI agent yang bisa mencari sinyal, merangkum evidence, lalu menyiapkan hasilnya untuk diverifikasi.`,
     bullets: [
       hasAllCoreSignals
         ? "Sinyalnya lengkap: ada percakapan publik, repo builder, referensi teknis, dan konteks HackQuest."
@@ -940,7 +940,7 @@ function buildFinalAnswer(
       "Arah project yang paling masuk akal adalah membuat agent research flow yang tidak hanya menjawab, tetapi juga menyimpan evidence dan jejak verifikasi.",
     ],
     recommendation:
-      "Untuk demo, jelaskan SignalGraph sebagai AI research assistant berbasis agent: user bertanya satu topic, OpenClaw mengatur agent, SignalGraph mencari live evidence, lalu 0G dipakai untuk menyimpan bundle bukti dan proof hasil akhirnya.",
+      "Untuk demo, jelaskan Langclaw sebagai AI research assistant berbasis agent: user bertanya satu topic, OpenClaw mengatur agent, Langclaw mencari live evidence, lalu 0G dipakai untuk menyimpan bundle bukti dan proof hasil akhirnya.",
     caveat: errors.length
       ? `Ada ${errors.length} provider issue, jadi jawaban ini sebaiknya dianggap directional dan perlu dicek ulang sebelum dipakai sebagai klaim final.`
       : "Tidak ada provider error, tetapi jawaban tetap dibatasi oleh live sources yang ditemukan pada saat run ini.",

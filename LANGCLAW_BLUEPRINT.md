@@ -1,20 +1,20 @@
-# SignalGraph Hackathon Blueprint
+# Langclaw Hackathon Blueprint
 
-SignalGraph is the recommended project for the 0G APAC Hackathon Track 1.
+Langclaw is the recommended project for the 0G APAC Hackathon Track 1.
 
 It is a verifiable multi-agent trend research engine. It helps builders, founders, creators, and ecosystem teams turn noisy X posts, GitHub repos, product docs, and project pages into a clear research brief with a stored evidence trail.
 
 ## Final Project Name
 
-SignalGraph
+Langclaw
 
 ## One Sentence Description
 
-SignalGraph turns one topic into live X, GitHub, Docs, and HackQuest signals through OpenClaw-compatible agents and 0G-backed evidence memory.
+Langclaw turns one topic into live X, GitHub, Docs, and HackQuest signals through OpenClaw-compatible agents and 0G-backed evidence memory.
 
 ## Positioning
 
-Build SignalGraph as an agentic research engine, not a chatbot.
+Build Langclaw as an agentic research engine, not a chatbot.
 
 The product does one valuable job:
 
@@ -32,9 +32,9 @@ This fits Track 1 because the system shows:
 
 ## Why This Idea
 
-Personal AI assistants and memory vaults are already crowded. SignalGraph avoids that lane.
+Personal AI assistants and memory vaults are already crowded. Langclaw avoids that lane.
 
-SignalGraph focuses on a sharper problem:
+Langclaw focuses on a sharper problem:
 
 Teams need fast trend research before they build, pitch, post, or invest time.
 
@@ -47,7 +47,7 @@ The current workflow is slow:
 - They lose the source trail.
 - They cannot prove where the final brief came from.
 
-SignalGraph fixes that with coordinated agents and verifiable evidence storage.
+Langclaw fixes that with coordinated agents and verifiable evidence storage.
 
 ## Target Users
 
@@ -67,7 +67,7 @@ User prompt:
 Find the strongest AI x Web3 product trends this week and suggest one project angle for a builder team.
 ```
 
-SignalGraph then:
+Langclaw then:
 
 1. Reads one topic from the user.
 2. Discovers live X posts, GitHub repos, docs, and HackQuest pages.
@@ -238,7 +238,7 @@ Output:
 ```text
 User
   -> API Client
-  -> SignalGraph Backend API
+  -> Langclaw Backend API
   -> OpenClaw Runtime Adapter
   -> Planner Agent
   -> Discovery Agent
@@ -339,12 +339,12 @@ Why it matters:
 
 ### OpenClaw
 
-Use OpenClaw as the orchestration adapter for SignalGraph.
+Use OpenClaw as the orchestration adapter for Langclaw.
 
 Current integration:
 
-- Define each SignalGraph agent as an OpenClaw-compatible skill.
-- Route the topic through `runSignalGraphWorkflow(topic)`.
+- Define each Langclaw agent as an OpenClaw-compatible skill.
+- Route the topic through `runLangclawWorkflow(topic)`.
 - Keep raw provider API calls in TypeScript.
 - Return a runtime trace to the API response and UI.
 
@@ -358,7 +358,7 @@ Fallback:
 Contract name:
 
 ```text
-SignalGraphRegistry
+LangclawRegistry
 ```
 
 Events:
@@ -411,7 +411,7 @@ function getBrief(uint256 briefId) external view returns (BriefRecord memory);
 
 ## UI Screens
 
-### 1. SignalGraph AI Chat
+### 1. Langclaw AI Chat
 
 Purpose:
 
@@ -481,7 +481,7 @@ Fields:
 Say:
 
 ```text
-Teams waste hours reading noisy public signals before they decide what to build. SignalGraph turns X threads, GitHub repos, and docs into a verified trend brief.
+Teams waste hours reading noisy public signals before they decide what to build. Langclaw turns X threads, GitHub repos, and docs into a verified trend brief.
 ```
 
 Show:
@@ -494,7 +494,7 @@ Show:
 Action:
 
 - Enter one topic.
-- Send it through the SignalGraph AI chat composer.
+- Send it through the Langclaw AI chat composer.
 - Open the OpenClaw skill trace inside the chat answer.
 
 Say:
@@ -555,7 +555,7 @@ Action:
 Say:
 
 ```text
-SignalGraph stores the evidence bundle on 0G Storage and anchors the brief hash on-chain. The team can prove what the agent saw when it wrote the brief.
+Langclaw stores the evidence bundle on 0G Storage and anchors the brief hash on-chain. The team can prove what the agent saw when it wrote the brief.
 ```
 
 Show:
@@ -569,7 +569,7 @@ Show:
 Say:
 
 ```text
-SignalGraph is an agentic research layer for X-native teams. It gives them fast strategy, clear evidence, and verifiable AI output.
+Langclaw is an agentic research layer for X-native teams. It gives them fast strategy, clear evidence, and verifiable AI output.
 ```
 
 Show:
@@ -634,7 +634,7 @@ Tasks:
 
 - Upload evidence bundle to 0G Storage.
 - Compute brief hash.
-- Deploy SignalGraphRegistry.
+- Deploy LangclawRegistry.
 - Register one brief on-chain.
 - Save contract address and explorer link.
 
@@ -705,15 +705,15 @@ Use this order:
 
 ### Project Name
 
-SignalGraph
+Langclaw
 
 ### One Sentence Description
 
-SignalGraph turns one topic into live X, GitHub, Docs, and HackQuest signals through coordinated AI agents and 0G-backed evidence memory.
+Langclaw turns one topic into live X, GitHub, Docs, and HackQuest signals through coordinated AI agents and 0G-backed evidence memory.
 
 ### Short Summary
 
-SignalGraph helps builders and teams understand fast-moving AI x Web3 trends. Users enter one topic. A coordinated agent workflow discovers live X, GitHub, Docs, and HackQuest sources, ranks trends, writes a decision-ready brief, stores the evidence bundle on 0G Storage, and anchors the final brief hash on 0G Chain.
+Langclaw helps builders and teams understand fast-moving AI x Web3 trends. Users enter one topic. A coordinated agent workflow discovers live X, GitHub, Docs, and HackQuest sources, ranks trends, writes a decision-ready brief, stores the evidence bundle on 0G Storage, and anchors the final brief hash on 0G Chain.
 
 ### Problem
 
@@ -721,7 +721,7 @@ Public trend research is noisy and hard to verify. Teams often make build decisi
 
 ### Solution
 
-SignalGraph turns public signals into structured, verifiable research. It uses multiple specialized agents for source extraction, trend ranking, synthesis, evidence storage, and verification.
+Langclaw turns public signals into structured, verifiable research. It uses multiple specialized agents for source extraction, trend ranking, synthesis, evidence storage, and verification.
 
 ### 0G Components
 
@@ -732,9 +732,9 @@ SignalGraph turns public signals into structured, verifiable research. It uses m
 ## X Post Draft
 
 ```text
-Introducing SignalGraph for the #0GHackathon.
+Introducing Langclaw for the #0GHackathon.
 
-SignalGraph is a verifiable multi-agent trend research engine for X-native teams.
+Langclaw is a verifiable multi-agent trend research engine for X-native teams.
 
 Enter one topic.
 Agents discover X, GitHub, Docs, and HackQuest signals, rank trends, store evidence on 0G Storage, and anchor the brief hash on-chain.

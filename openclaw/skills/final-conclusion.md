@@ -2,7 +2,7 @@
 
 ## Role
 
-Write the final AI chat answer from all SignalGraph agent outputs.
+Write the final AI chat answer from all Langclaw agent outputs.
 
 ## Input
 

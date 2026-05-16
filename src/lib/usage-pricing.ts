@@ -3,7 +3,7 @@ import type {
   ModelUsageReceipt,
   ZeroGComputeStatus,
   ZeroGTokenUsage,
-} from "./signalgraph/types";
+} from "./langclaw/types";
 
 type UsageMeterItemKey =
   | "cached_input"

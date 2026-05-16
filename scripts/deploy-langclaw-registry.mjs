@@ -20,7 +20,7 @@ for (const path of [join(rootDir, ".env.local"), join(rootDir, ".env")]) {
   }
 }
 
-const contractPath = join(rootDir, "contracts", "SignalGraphRegistry.sol");
+const contractPath = join(rootDir, "contracts", "LangclawRegistry.sol");
 const rpcUrl =
   process.env.OG_CHAIN_RPC_URL ||
   process.env.OG_RPC_URL ||
@@ -60,7 +60,7 @@ const walletClient = createWalletClient({
   transport: http(rpcUrl),
 });
 
-console.log(`Deploying SignalGraphRegistry to chain ${chainId}.`);
+console.log(`Deploying LangclawRegistry to chain ${chainId}.`);
 const hash = await walletClient.deployContract({
   abi,
   account,
@@ -74,8 +74,8 @@ if (receipt.status !== "success" || !receipt.contractAddress) {
   throw new Error(`Deployment failed. Transaction: ${hash}`);
 }
 
-console.log(`SignalGraphRegistry: ${receipt.contractAddress}`);
-console.log(`SIGNALGRAPH_REGISTRY_ADDRESS=${receipt.contractAddress}`);
+console.log(`LangclawRegistry: ${receipt.contractAddress}`);
+console.log(`LANGCLAW_REGISTRY_ADDRESS=${receipt.contractAddress}`);
 
 async function waitForReceipt(hash) {
   try {
@@ -105,7 +105,7 @@ async function compileContract() {
   const input = {
     language: "Solidity",
     sources: {
-      "SignalGraphRegistry.sol": {
+      "LangclawRegistry.sol": {
         content: source,
       },
     },
@@ -129,10 +129,10 @@ async function compileContract() {
     throw new Error(errors.map((item) => item.formattedMessage).join("\n"));
   }
 
-  const compiled = output.contracts?.["SignalGraphRegistry.sol"]?.SignalGraphRegistry;
+  const compiled = output.contracts?.["LangclawRegistry.sol"]?.LangclawRegistry;
 
   if (!compiled?.evm?.bytecode?.object) {
-    throw new Error("SignalGraphRegistry bytecode was not produced.");
+    throw new Error("LangclawRegistry bytecode was not produced.");
   }
 
   return {

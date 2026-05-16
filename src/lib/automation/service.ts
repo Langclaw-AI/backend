@@ -9,7 +9,7 @@ import {
 } from "../server/account-auth";
 import type { Database, Json } from "../supabase/database.types";
 import { writeAutomationRunMemory } from "../memory";
-import { runSignalGraphWorkflow } from "../signalgraph/workflow";
+import { runLangclawWorkflow } from "../langclaw/workflow";
 import {
   refundResearchUsage,
   reserveResearchUsage,
@@ -799,7 +799,7 @@ async function runTaskWithRetries(
           model: task.model ?? undefined,
         }
       );
-      const payload = await runSignalGraphWorkflow(prompt, {
+      const payload = await runLangclawWorkflow(prompt, {
         requestedModel: task.model ?? undefined,
       });
       payload.usage = await settleResearchUsage({

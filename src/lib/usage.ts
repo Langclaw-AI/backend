@@ -24,7 +24,7 @@ import type {
   ModelUsageReceipt,
   ZeroGComputeStatus,
   ZeroGTokenUsage,
-} from "./signalgraph/types";
+} from "./langclaw/types";
 import {
   findRouterModel,
   getDefaultRouterModel,
