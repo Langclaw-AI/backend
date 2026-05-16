@@ -67,6 +67,7 @@ type TelegramLinkCandidate = {
 
 const defaultTimezone = "Asia/Jakarta";
 const neuronPer0G = 1_000_000_000_000_000_000n;
+const defaultTelegramBotUsername = "langclawaibot";
 
 export class AutomationHttpError extends Error {
   status: number;
@@ -523,6 +524,7 @@ export async function verifyNotificationEmailLink(
 export async function createTelegramLinkCode(authInput: AccountAuthInput) {
   const context = await requireAutomationContext(authInput);
   const code = randomBytes(5).toString("hex").toUpperCase();
+  const botUsername = readTelegramBotUsername();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
   const { error } = await context.supabase
     .from("langclaw_automation_settings")
@@ -540,8 +542,10 @@ export async function createTelegramLinkCode(authInput: AccountAuthInput) {
   }
 
   return {
+    botUsername,
     code,
     command: `/link ${code}`,
+    deepLink: `https://t.me/${botUsername}?start=${encodeURIComponent(code)}`,
     expiresAt,
   };
 }
@@ -1859,8 +1863,10 @@ function readTelegramUpdateCandidate(update: unknown): TelegramLinkCandidate | n
   };
 }
 
-function readTelegramCodeFromText(text: string) {
-  const commandMatch = text.match(/(?:^|\s)\/?link\s+([A-Za-z0-9]{6,32})\b/i);
+export function readTelegramCodeFromText(text: string) {
+  const commandMatch = text.match(
+    /(?:^|\s)\/?(?:link|start)\s+([A-Za-z0-9]{6,32})\b/i
+  );
 
   if (commandMatch) {
     return commandMatch[1].toUpperCase();
@@ -1873,6 +1879,15 @@ function readTelegramCodeFromText(text: string) {
   }
 
   return "";
+}
+
+function readTelegramBotUsername() {
+  const configured = process.env.LANGCLAW_TELEGRAM_BOT_USERNAME?.trim() || "";
+  const normalized = configured.replace(/^@+/, "");
+
+  return /^[A-Za-z0-9_]{5,32}$/.test(normalized)
+    ? normalized
+    : defaultTelegramBotUsername;
 }
 
 function readEmail(value: unknown) {
