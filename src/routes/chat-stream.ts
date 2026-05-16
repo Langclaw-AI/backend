@@ -1,5 +1,9 @@
 import type { DirectChatPayload } from "../lib/chat-sessions";
 import { runOnChainToolWorkflow } from "../lib/onchain-tools/workflow";
+import {
+  accountAuthErrorResponse,
+  requireAccountAuth,
+} from "../lib/server/account-auth";
 import type { WalletAuthInput } from "../lib/server/wallet-auth";
 import { runSignalGraphWorkflow } from "../lib/signalgraph/workflow";
 import type { WorkflowProgressEvent } from "../lib/signalgraph/types";
@@ -66,14 +70,20 @@ export async function handleChatStream(request: Request) {
     return Response.json({ error: "Message is required." }, { status: 400 });
   }
 
+  const account = await requireAccountAuth({
+    request,
+    wallet: body.wallet ?? {},
+  }).catch((error) => ({ error }));
+
+  if ("error" in account) {
+    return accountAuthErrorResponse(account.error);
+  }
+
   let reservation: UsageReservation | undefined;
 
   if (useAgent) {
     try {
-      reservation = await reserveResearchUsage({
-        request,
-        wallet: body.wallet ?? {},
-      });
+      reservation = await reserveResearchUsage({ account });
     } catch (error) {
       return usageErrorResponse(error);
     }
@@ -158,6 +168,7 @@ export async function handleChatStream(request: Request) {
             type: "direct",
             payload: {
               answer: direct.answer || streamedAnswer,
+              error: direct.error,
               fallbackFrom: direct.fallbackFrom,
               model: direct.model,
               modelHonored: direct.modelHonored,
@@ -226,7 +237,9 @@ export async function handleChatStream(request: Request) {
   return new Response(stream, {
     headers: {
       "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
       "Content-Type": "application/x-ndjson; charset=utf-8",
+      "X-Accel-Buffering": "no",
     },
   });
 }
@@ -326,6 +339,10 @@ function isContextualFollowUp(message: string) {
 }
 
 function readToolMode(toolMode: unknown, researchTrend: unknown) {
+  if (toolMode === "chat") {
+    return "chat";
+  }
+
   if (toolMode === "onchain") {
     return "onchain";
   }

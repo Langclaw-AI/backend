@@ -804,6 +804,61 @@ Update request:
 }
 ```
 
+## Memory API
+
+All memory endpoints require the same wallet payload used by chat/session APIs.
+
+### Memories
+
+```http
+POST /api/memory
+```
+
+Actions:
+
+- `list`
+- `create`
+- `status`
+- `bulk-status`
+- `delete`
+- `bulk-delete`
+
+Toggle one memory:
+
+```json
+{
+  "action": "status",
+  "memoryId": "memory_uuid",
+  "status": "disabled"
+}
+```
+
+### Memory Settings
+
+```http
+POST /api/memory/settings
+```
+
+Actions:
+
+- `get`
+- `update`
+
+Update request:
+
+```json
+{
+  "action": "update",
+  "settings": {
+    "captureEnabled": true,
+    "crossChatRecall": true,
+    "projectScopedRecall": true,
+    "autoDisableLowConfidence": false,
+    "retentionDays": 365
+  }
+}
+```
+
 ## Admin 0G Account API
 
 Admin endpoints require `LANGCLAW_ADMIN_API_KEY`.

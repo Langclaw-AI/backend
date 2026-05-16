@@ -1234,10 +1234,10 @@ function readStreamLine(line: string) {
     const choices = payload.choices;
     const delta =
       Array.isArray(choices) && choices[0]
-        ? readString(
+        ? readContentString(
             (choices[0] as { delta?: { content?: unknown } }).delta?.content
           ) ||
-          readString(
+          readContentString(
             (choices[0] as { message?: { content?: unknown } }).message
               ?.content
           )
@@ -1273,6 +1273,10 @@ function readNonNegativeInt(value: unknown) {
 
 function readString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function readContentString(value: unknown) {
+  return typeof value === "string" ? value : "";
 }
 
 function normalizeRouterUrl(value: string) {

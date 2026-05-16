@@ -329,6 +329,48 @@ test("parses streaming deltas, usage, and final trace", async () => {
   }
 });
 
+test("preserves whitespace and newlines in streaming deltas", async () => {
+  const deltas: string[] = [];
+  const restore = mockFetch(() =>
+    sseResponse([
+      'data: {"choices":[{"delta":{"content":"Here"}}]}',
+      'data: {"choices":[{"delta":{"content":" is"}}]}',
+      'data: {"choices":[{"delta":{"content":"\\n\\n| A | B |"}}]}',
+      'data: {"choices":[{"delta":{"content":"\\n| - | - |"}}]}',
+      "data: [DONE]",
+    ])
+  );
+
+  try {
+    await withEnv(
+      {
+        OG_COMPUTE_API_KEY: "test-key",
+        OG_COMPUTE_ENABLED: "true",
+        OG_COMPUTE_ROUTER_URL: "https://router-stream.test/v1",
+      },
+      async () => {
+        const result = await streamChatCompletion({
+          onDelta: (delta) => deltas.push(delta),
+          payload: {
+            messages: [{ content: "hello", role: "user" }],
+            model: "chat-model",
+          },
+        });
+
+        assert.equal(result.answer, "Here is\n\n| A | B |\n| - | - |");
+        assert.deepEqual(deltas, [
+          "Here",
+          " is",
+          "\n\n| A | B |",
+          "\n| - | - |",
+        ]);
+      }
+    );
+  } finally {
+    restore();
+  }
+});
+
 test("requests and records trusted Router TEE verification", async () => {
   let requestBody: Record<string, unknown> | undefined;
   const restore = mockFetch((url, init) => {

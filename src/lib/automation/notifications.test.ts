@@ -77,7 +77,7 @@ test("sendAutomationEmail posts the requested payload to Resend", async () => {
   }) as typeof fetch;
 
   process.env.RESEND_API_KEY = "test-api-key";
-  delete process.env.LANGCLAW_AUTOMATION_EMAIL_FROM;
+  process.env.LANGCLAW_AUTOMATION_EMAIL_FROM = "alerts@example.com";
 
   try {
     await sendAutomationEmail({
@@ -87,11 +87,101 @@ test("sendAutomationEmail posts the requested payload to Resend", async () => {
     });
 
     assert.deepEqual(requestBody, {
-      from: "onboarding@resend.dev",
+      from: "alerts@example.com",
       subject: "Verify your Langclaw automation email",
       text: "123456",
       to: "user@example.com",
     });
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalApiKey === undefined) {
+      delete process.env.RESEND_API_KEY;
+    } else {
+      process.env.RESEND_API_KEY = originalApiKey;
+    }
+    if (originalFrom === undefined) {
+      delete process.env.LANGCLAW_AUTOMATION_EMAIL_FROM;
+    } else {
+      process.env.LANGCLAW_AUTOMATION_EMAIL_FROM = originalFrom;
+    }
+  }
+});
+
+test("sendAutomationEmail requires an explicit verified sender for verification mail", async () => {
+  const originalApiKey = process.env.RESEND_API_KEY;
+  const originalFrom = process.env.LANGCLAW_AUTOMATION_EMAIL_FROM;
+  const originalResendEmailFrom = process.env.RESEND_EMAIL_FROM;
+  const originalResendFromEmail = process.env.RESEND_FROM_EMAIL;
+
+  process.env.RESEND_API_KEY = "test-api-key";
+  delete process.env.LANGCLAW_AUTOMATION_EMAIL_FROM;
+  delete process.env.RESEND_EMAIL_FROM;
+  delete process.env.RESEND_FROM_EMAIL;
+
+  try {
+    await assert.rejects(
+      sendAutomationEmail({
+        requireConfigured: true,
+        subject: "Verify your Langclaw automation email",
+        text: "123456",
+        to: "user@example.com",
+      }),
+      /LANGCLAW_AUTOMATION_EMAIL_FROM must be set to a verified Resend sender/
+    );
+  } finally {
+    if (originalApiKey === undefined) {
+      delete process.env.RESEND_API_KEY;
+    } else {
+      process.env.RESEND_API_KEY = originalApiKey;
+    }
+    if (originalFrom === undefined) {
+      delete process.env.LANGCLAW_AUTOMATION_EMAIL_FROM;
+    } else {
+      process.env.LANGCLAW_AUTOMATION_EMAIL_FROM = originalFrom;
+    }
+    if (originalResendEmailFrom === undefined) {
+      delete process.env.RESEND_EMAIL_FROM;
+    } else {
+      process.env.RESEND_EMAIL_FROM = originalResendEmailFrom;
+    }
+    if (originalResendFromEmail === undefined) {
+      delete process.env.RESEND_FROM_EMAIL;
+    } else {
+      process.env.RESEND_FROM_EMAIL = originalResendFromEmail;
+    }
+  }
+});
+
+test("sendAutomationEmail includes Resend 403 details and config hint", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalApiKey = process.env.RESEND_API_KEY;
+  const originalFrom = process.env.LANGCLAW_AUTOMATION_EMAIL_FROM;
+
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({
+        message: "The sender address is not verified.",
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        status: 403,
+      }
+    )) as typeof fetch;
+
+  process.env.RESEND_API_KEY = "test-api-key";
+  process.env.LANGCLAW_AUTOMATION_EMAIL_FROM = "alerts@example.com";
+
+  try {
+    await assert.rejects(
+      sendAutomationEmail({
+        subject: "Verify your Langclaw automation email",
+        text: "123456",
+        to: "user@example.com",
+      }),
+      /Email notification failed with 403: The sender address is not verified.*verified Resend domain/
+    );
   } finally {
     globalThis.fetch = originalFetch;
     if (originalApiKey === undefined) {

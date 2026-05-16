@@ -34,7 +34,7 @@ type SendEmailInput = {
 
 const telegramApiBase = "https://api.telegram.org";
 const resendApiUrl = "https://api.resend.com/emails";
-const defaultEmailFrom = "onboarding@resend.dev";
+const maxProviderErrorLength = 500;
 
 export async function sendAutomationRunNotification({
   settings,
@@ -189,11 +189,11 @@ export async function sendAutomationEmail({
   to,
 }: SendEmailInput) {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.LANGCLAW_AUTOMATION_EMAIL_FROM?.trim() || defaultEmailFrom;
+  const from = readAutomationEmailSender();
 
   if (!apiKey || !from || !to) {
     if (requireConfigured) {
-      throw new Error("Resend email sender is not configured.");
+      throw new Error(buildEmailConfigError(Boolean(apiKey), Boolean(from), Boolean(to)));
     }
 
     return;
@@ -214,8 +214,73 @@ export async function sendAutomationEmail({
   });
 
   if (!response.ok) {
-    throw new Error(`Email notification failed with ${response.status}.`);
+    throw new Error(await buildEmailProviderError(response));
   }
+}
+
+function readAutomationEmailSender() {
+  return (
+    process.env.LANGCLAW_AUTOMATION_EMAIL_FROM?.trim() ||
+    process.env.RESEND_EMAIL_FROM?.trim() ||
+    process.env.RESEND_FROM_EMAIL?.trim()
+  );
+}
+
+function buildEmailConfigError(
+  hasApiKey: boolean,
+  hasFrom: boolean,
+  hasTo: boolean
+) {
+  if (!hasApiKey) {
+    return "RESEND_API_KEY is not configured.";
+  }
+
+  if (!hasFrom) {
+    return "LANGCLAW_AUTOMATION_EMAIL_FROM must be set to a verified Resend sender.";
+  }
+
+  if (!hasTo) {
+    return "A verified notification email is required.";
+  }
+
+  return "Resend email sender is not configured.";
+}
+
+async function buildEmailProviderError(response: Response) {
+  const detail = await readProviderErrorDetail(response);
+  const hint =
+    response.status === 401 || response.status === 403
+      ? " Check RESEND_API_KEY and make sure LANGCLAW_AUTOMATION_EMAIL_FROM uses a verified Resend domain or sender."
+      : "";
+
+  return `Email notification failed with ${response.status}${
+    detail ? `: ${detail}` : ""
+  }.${hint}`;
+}
+
+async function readProviderErrorDetail(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  const raw = await response.text().catch(() => "");
+  const trimmed = raw.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (contentType.includes("application/json")) {
+    try {
+      const payload = JSON.parse(trimmed) as Record<string, unknown>;
+      const message = payload.message ?? payload.error ?? payload.name;
+
+      if (typeof message === "string" && message.trim()) {
+        return message.trim().slice(0, maxProviderErrorLength);
+      }
+    } catch {
+      return trimmed.slice(0, maxProviderErrorLength);
+    }
+  }
+
+  return trimmed.slice(0, maxProviderErrorLength);
 }
 
 function formatStatus(status: AutomationRunStatus) {

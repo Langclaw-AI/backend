@@ -12,9 +12,11 @@ import {
 
 type ChatSessionsBody = {
   action?: unknown;
+  pinned?: unknown;
   wallet?: WalletAuthInput;
   sessionId?: unknown;
   session?: unknown;
+  title?: unknown;
 };
 
 type ChatSessionRow = {
@@ -29,8 +31,11 @@ type ChatMessageRow = {
   id: string;
   role: "assistant" | "user";
   content: string;
+  mode: "chat" | "onchain" | "research" | null;
+  model: string | null;
   result: Json | null;
   direct_answer: Json | null;
+  onchain_result: Json | null;
   progress_events: Json | null;
   error: string | null;
   stopped: boolean | null;
@@ -149,6 +154,67 @@ export async function handleChatSessions(request: Request) {
     });
   }
 
+  if (body.action === "update") {
+    const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
+
+    if (!sessionId) {
+      return Response.json(
+        { configured: true, error: "sessionId is required." },
+        { status: 400 }
+      );
+    }
+
+    const titleResult = readOptionalTitle(body.title);
+    const hasPinned = typeof body.pinned === "boolean";
+
+    if (titleResult.error) {
+      return Response.json(
+        { configured: true, error: titleResult.error },
+        { status: 400 }
+      );
+    }
+
+    if (titleResult.value === undefined && !hasPinned) {
+      return Response.json(
+        { configured: true, error: "title or pinned is required." },
+        { status: 400 }
+      );
+    }
+
+    const existing = await readSessionOwner(sessionId);
+
+    if (!existing) {
+      return Response.json(
+        { configured: true, error: "Chat session was not found." },
+        { status: 404 }
+      );
+    }
+
+    if (existing.wallet_user_id !== walletUserId) {
+      return Response.json(
+        { configured: true, error: "Session belongs to another wallet." },
+        { status: 403 }
+      );
+    }
+
+    const saved = await updateSessionMetadata(walletUserId, sessionId, {
+      pinned: hasPinned ? body.pinned === true : undefined,
+      title: titleResult.value,
+    });
+
+    if (!saved) {
+      return Response.json(
+        { configured: true, error: "Unable to update chat session." },
+        { status: 500 }
+      );
+    }
+
+    return Response.json({
+      configured: true,
+      session: saved,
+    });
+  }
+
   if (body.action === "upsert") {
     const session = normalizeSession(body.session);
 
@@ -234,7 +300,7 @@ async function readSession(walletUserId: string, sessionId: string) {
   const { data: messageRows, error: messagesError } = await supabase
     .from("langclaw_chat_messages")
     .select(
-      "id,role,content,result,direct_answer,progress_events,error,stopped,created_at"
+      "id,role,content,mode,model,result,direct_answer,onchain_result,progress_events,error,stopped,created_at"
     )
     .eq("wallet_user_id", walletUserId)
     .eq("session_id", sessionId)
@@ -296,6 +362,9 @@ async function upsertSession(walletUserId: string, session: ChatSession) {
           direct_answer: toJson(message.directAnswer),
           error: message.error ?? null,
           id: message.id,
+          mode: message.mode ?? null,
+          model: message.model ?? null,
+          onchain_result: toJson(message.onChain),
           position,
           progress_events: toJson(message.progressEvents),
           result: toJson(message.result),
@@ -328,6 +397,48 @@ async function deleteSession(walletUserId: string, sessionId: string) {
     .eq("id", sessionId);
 
   return !error;
+}
+
+async function updateSessionMetadata(
+  walletUserId: string,
+  sessionId: string,
+  patch: {
+    pinned?: boolean;
+    title?: string;
+  }
+) {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const updates: {
+    pinned?: boolean;
+    title?: string;
+  } = {};
+
+  if (patch.title !== undefined) {
+    updates.title = patch.title;
+  }
+
+  if (patch.pinned !== undefined) {
+    updates.pinned = patch.pinned;
+  }
+
+  const { data, error } = await supabase
+    .from("langclaw_chat_sessions")
+    .update(updates)
+    .eq("wallet_user_id", walletUserId)
+    .eq("id", sessionId)
+    .select("id,title,pinned,created_at,updated_at")
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return rowToSession(data as ChatSessionRow);
 }
 
 async function upsertResearchRuns(walletUserId: string, session: ChatSession) {
@@ -378,6 +489,9 @@ function rowToMessage(row: ChatMessageRow): StoredChatMessage {
       (row.direct_answer as StoredChatMessage["directAnswer"]) ?? undefined,
     error: row.error ?? undefined,
     id: row.id,
+    mode: row.mode ?? undefined,
+    model: row.model ?? undefined,
+    onChain: (row.onchain_result as StoredChatMessage["onChain"]) ?? undefined,
     progressEvents:
       (row.progress_events as StoredChatMessage["progressEvents"]) ?? undefined,
     result: (row.result as StoredChatMessage["result"]) ?? undefined,
@@ -425,6 +539,24 @@ function toJson(value: unknown): Json | null {
   return JSON.parse(JSON.stringify(value)) as Json;
 }
 
+function readOptionalTitle(value: unknown): { error?: string; value?: string } {
+  if (value === undefined) {
+    return {};
+  }
+
+  if (typeof value !== "string") {
+    return { error: "title must be a string." };
+  }
+
+  const title = value.trim().replace(/\s+/g, " ");
+
+  if (!title) {
+    return { error: "title cannot be empty." };
+  }
+
+  return { value: title.length > 120 ? `${title.slice(0, 117)}...` : title };
+}
+
 function normalizeMessage(value: unknown): StoredChatMessage | null {
   if (!value || typeof value !== "object") {
     return null;
@@ -445,6 +577,14 @@ function normalizeMessage(value: unknown): StoredChatMessage | null {
     directAnswer: message.directAnswer,
     error: typeof message.error === "string" ? message.error : undefined,
     id: message.id,
+    mode:
+      message.mode === "chat" ||
+      message.mode === "onchain" ||
+      message.mode === "research"
+        ? message.mode
+        : undefined,
+    model: typeof message.model === "string" ? message.model : undefined,
+    onChain: message.onChain,
     progressEvents: Array.isArray(message.progressEvents)
       ? message.progressEvents
       : undefined,

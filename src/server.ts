@@ -6,12 +6,14 @@ import {
   type ServerResponse,
 } from "node:http";
 import { Readable } from "node:stream";
+import { once } from "node:events";
 
 import { handleChatSessions } from "./routes/chat-sessions";
 import { handleChatStream } from "./routes/chat-stream";
 import { handleDiscover } from "./routes/discover";
 import { handleDiscoverStream } from "./routes/discover-stream";
 import { handleApiKeys } from "./routes/api-keys";
+import { handleMemory, handleMemorySettings } from "./routes/memory";
 import {
   handleAutomationRuns,
   handleAutomationSettings,
@@ -52,6 +54,8 @@ const routes = new Map<string, RouteHandler>([
   ["POST /api/chat/stream", handleChatStream],
   ["POST /api/discover", handleDiscover],
   ["POST /api/discover/stream", handleDiscoverStream],
+  ["POST /api/memory", handleMemory],
+  ["POST /api/memory/settings", handleMemorySettings],
   ["POST /api/usage/balance", handleUsageBalance],
   ["POST /api/usage/deposit/verify", handleUsageDepositVerify],
   ["POST /api/usage/quote", handleUsageQuote],
@@ -196,6 +200,7 @@ async function writeWebResponse(
   response: ServerResponse,
   webResponse: Response,
 ) {
+  response.socket?.setNoDelay(true);
   response.statusCode = webResponse.status;
   response.statusMessage = webResponse.statusText;
 
@@ -209,6 +214,8 @@ async function writeWebResponse(
     return;
   }
 
+  response.flushHeaders();
+
   const reader = webResponse.body.getReader();
 
   try {
@@ -220,7 +227,11 @@ async function writeWebResponse(
       }
 
       if (value) {
-        response.write(Buffer.from(value));
+        const canContinue = response.write(Buffer.from(value));
+
+        if (!canContinue) {
+          await once(response, "drain");
+        }
       }
     }
   } finally {

@@ -1,4 +1,5 @@
 import type { DiscoverPayload, WorkflowProgressEvent } from "./signalgraph/types";
+import type { OnChainToolFinalPayload } from "./onchain-tools/types";
 import type { UsageMeter } from "./usage-pricing";
 import type { RouterTeeVerification, RouterTokenUsage } from "./zero-g/router";
 
@@ -20,14 +21,18 @@ export type DirectChatPayload = {
   teeVerification?: RouterTeeVerification;
   title?: string;
   usage?: DirectChatUsage;
+  error?: string;
 };
 
 export type StoredChatMessage = {
   id: string;
   role: "assistant" | "user";
   content: string;
+  mode?: "chat" | "onchain" | "research";
+  model?: string;
   result?: DiscoverPayload;
   directAnswer?: DirectChatPayload;
+  onChain?: OnChainToolFinalPayload;
   progressEvents?: WorkflowProgressEvent[];
   error?: string;
   stopped?: boolean;

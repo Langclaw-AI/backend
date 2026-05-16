@@ -8,6 +8,7 @@ import {
   type AuthenticatedAccount,
 } from "../server/account-auth";
 import type { Database, Json } from "../supabase/database.types";
+import { writeAutomationRunMemory } from "../memory";
 import { runSignalGraphWorkflow } from "../signalgraph/workflow";
 import {
   refundResearchUsage,
@@ -934,6 +935,17 @@ async function finishRun(
     .eq("wallet_user_id", context.walletUser.id);
 
   const finishedRun = rowToRun(data as AutomationRunRow, task.name);
+
+  if (settings.write_run_logs_to_memory) {
+    await writeAutomationRunMemory(context, {
+      completedAt: completedAt.toISOString(),
+      error,
+      project: task.project,
+      runId: finishedRun.id,
+      status,
+      taskName: task.name,
+    }).catch(() => undefined);
+  }
 
   if (status === "failed" || status === "skipped") {
     const notification = {

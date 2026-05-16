@@ -115,6 +115,9 @@ export type Database = {
           direct_answer: Json | null;
           error: string | null;
           id: string;
+          mode: "chat" | "onchain" | "research" | null;
+          model: string | null;
+          onchain_result: Json | null;
           position: number;
           progress_events: Json | null;
           result: Json | null;
@@ -129,6 +132,9 @@ export type Database = {
           direct_answer?: Json | null;
           error?: string | null;
           id: string;
+          mode?: "chat" | "onchain" | "research" | null;
+          model?: string | null;
+          onchain_result?: Json | null;
           position?: number;
           progress_events?: Json | null;
           result?: Json | null;
@@ -143,6 +149,9 @@ export type Database = {
           direct_answer?: Json | null;
           error?: string | null;
           id?: string;
+          mode?: "chat" | "onchain" | "research" | null;
+          model?: string | null;
+          onchain_result?: Json | null;
           position?: number;
           progress_events?: Json | null;
           result?: Json | null;
@@ -182,6 +191,84 @@ export type Database = {
           result?: Json;
           session_id?: string;
           topic?: string;
+          wallet_user_id?: string;
+        };
+        Relationships: [];
+      };
+      langclaw_memories: {
+        Row: {
+          category: "Preference" | "Project" | "Workflow" | "Personal" | "API";
+          confidence: number;
+          created_at: string;
+          id: string;
+          last_used_at: string | null;
+          memory: string;
+          metadata: Json;
+          scope: string;
+          source: string;
+          status: "active" | "disabled";
+          updated_at: string;
+          wallet_user_id: string;
+        };
+        Insert: {
+          category?: "Preference" | "Project" | "Workflow" | "Personal" | "API";
+          confidence?: number;
+          created_at?: string;
+          id?: string;
+          last_used_at?: string | null;
+          memory: string;
+          metadata?: Json;
+          scope?: string;
+          source?: string;
+          status?: "active" | "disabled";
+          updated_at?: string;
+          wallet_user_id: string;
+        };
+        Update: {
+          category?: "Preference" | "Project" | "Workflow" | "Personal" | "API";
+          confidence?: number;
+          created_at?: string;
+          id?: string;
+          last_used_at?: string | null;
+          memory?: string;
+          metadata?: Json;
+          scope?: string;
+          source?: string;
+          status?: "active" | "disabled";
+          updated_at?: string;
+          wallet_user_id?: string;
+        };
+        Relationships: [];
+      };
+      langclaw_memory_settings: {
+        Row: {
+          auto_disable_low_confidence: boolean;
+          capture_enabled: boolean;
+          created_at: string;
+          cross_chat_recall: boolean;
+          project_scoped_recall: boolean;
+          retention_days: number;
+          updated_at: string;
+          wallet_user_id: string;
+        };
+        Insert: {
+          auto_disable_low_confidence?: boolean;
+          capture_enabled?: boolean;
+          created_at?: string;
+          cross_chat_recall?: boolean;
+          project_scoped_recall?: boolean;
+          retention_days?: number;
+          updated_at?: string;
+          wallet_user_id: string;
+        };
+        Update: {
+          auto_disable_low_confidence?: boolean;
+          capture_enabled?: boolean;
+          created_at?: string;
+          cross_chat_recall?: boolean;
+          project_scoped_recall?: boolean;
+          retention_days?: number;
+          updated_at?: string;
           wallet_user_id?: string;
         };
         Relationships: [];

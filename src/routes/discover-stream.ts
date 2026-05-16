@@ -95,7 +95,9 @@ export async function handleDiscoverStream(request: Request) {
   return new Response(stream, {
     headers: {
       "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
       "Content-Type": "application/x-ndjson; charset=utf-8",
+      "X-Accel-Buffering": "no",
     },
   });
 }
