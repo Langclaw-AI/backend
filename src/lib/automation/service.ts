@@ -521,6 +521,38 @@ export async function verifyNotificationEmailLink(
   return rowToSettings(data as AutomationSettingsRow);
 }
 
+export async function unlinkNotificationEmail(authInput: AccountAuthInput) {
+  const context = await requireAutomationContext(authInput);
+  const settings = await readAutomationSettingsRow(context);
+  const { data, error } = await context.supabase
+    .from("langclaw_automation_settings")
+    .update({
+      failure_notification:
+        settings.failure_notification === "email"
+          ? "in-app"
+          : settings.failure_notification,
+      notification_channels: removeChannel(settings.notification_channels, "email"),
+      notification_email: null,
+      notification_email_code_hash: null,
+      notification_email_expires_at: null,
+      notification_email_linked_at: null,
+      notification_email_pending: null,
+      notification_email_verified: false,
+    })
+    .eq("wallet_user_id", context.walletUser.id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new AutomationHttpError(
+      500,
+      error?.message || "Unable to unlink automation email."
+    );
+  }
+
+  return rowToSettings(data as AutomationSettingsRow);
+}
+
 export async function createTelegramLinkCode(authInput: AccountAuthInput) {
   const context = await requireAutomationContext(authInput);
   const code = randomBytes(5).toString("hex").toUpperCase();
@@ -548,6 +580,37 @@ export async function createTelegramLinkCode(authInput: AccountAuthInput) {
     deepLink: `https://t.me/${botUsername}?start=${encodeURIComponent(code)}`,
     expiresAt,
   };
+}
+
+export async function unlinkTelegramLink(authInput: AccountAuthInput) {
+  const context = await requireAutomationContext(authInput);
+  const settings = await readAutomationSettingsRow(context);
+  const { data, error } = await context.supabase
+    .from("langclaw_automation_settings")
+    .update({
+      notification_channels: removeChannel(
+        settings.notification_channels,
+        "telegram"
+      ),
+      telegram_chat_id: null,
+      telegram_link_code_hash: null,
+      telegram_link_expires_at: null,
+      telegram_linked_at: null,
+      telegram_username: null,
+      telegram_verified: false,
+    })
+    .eq("wallet_user_id", context.walletUser.id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new AutomationHttpError(
+      500,
+      error?.message || "Unable to unlink Telegram chat."
+    );
+  }
+
+  return rowToSettings(data as AutomationSettingsRow);
 }
 
 export async function pollTelegramLink(authInput: AccountAuthInput) {
@@ -1822,7 +1885,36 @@ async function linkTelegramChat(
     );
   }
 
+  await sendTelegramVerificationSuccess(candidate.chatId).catch(() => undefined);
+
   return rowToSettings(data as AutomationSettingsRow);
+}
+
+async function sendTelegramVerificationSuccess(chatId: string) {
+  const token = process.env.LANGCLAW_TELEGRAM_BOT_TOKEN?.trim();
+
+  if (!token) {
+    return;
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    body: JSON.stringify({
+      chat_id: chatId,
+      disable_web_page_preview: true,
+      text: "Verification success. Langclaw automation alerts are now linked.",
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new AutomationHttpError(
+      502,
+      `Telegram verification reply failed with ${response.status}.`
+    );
+  }
 }
 
 function readTelegramUpdateCandidate(update: unknown): TelegramLinkCandidate | null {
@@ -1919,6 +2011,13 @@ function unionChannels(
   channel: "email" | "telegram" | "in-app"
 ) {
   return Array.from(new Set([...current, channel]));
+}
+
+function removeChannel(
+  current: Array<"email" | "telegram" | "in-app">,
+  channel: "email" | "telegram" | "in-app"
+) {
+  return current.filter((item) => item !== channel);
 }
 
 function maskEmail(email: string) {

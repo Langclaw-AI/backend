@@ -18,6 +18,8 @@ import {
   runDueAutomationTasks,
   runAutomationWebhook,
   setAllAutomationStatus,
+  unlinkNotificationEmail,
+  unlinkTelegramLink,
   updateAutomationSettings,
   updateAutomationTask,
   verifyNotificationEmailLink,
@@ -245,6 +247,13 @@ export async function handleAutomationNotifications(request: Request) {
       });
     }
 
+    if (body.action === "unlink-email") {
+      return Response.json({
+        configured: true,
+        settings: await unlinkNotificationEmail(auth),
+      });
+    }
+
     if (body.action === "create-telegram-link") {
       return Response.json({
         configured: true,
@@ -256,6 +265,13 @@ export async function handleAutomationNotifications(request: Request) {
       return Response.json({
         configured: true,
         ...(await pollTelegramLink(auth)),
+      });
+    }
+
+    if (body.action === "unlink-telegram") {
+      return Response.json({
+        configured: true,
+        settings: await unlinkTelegramLink(auth),
       });
     }
 
