@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 
 import {
   AccountAuthError,
@@ -2007,14 +2007,14 @@ function readDecimalString(value: string | number | null | undefined) {
   return /^\d+$/.test(value) ? value : "0";
 }
 
-function createWebhookSlug(name: string) {
+export function createWebhookSlug(name: string) {
   const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
 
-  return `${slug || "task"}-${randomUUID().slice(0, 8)}`;
+  return `${slug || "task"}-${randomBytes(16).toString("hex")}`;
 }
 
 function startOfLocalDay(date: Date, timezone: string) {

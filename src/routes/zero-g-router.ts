@@ -711,6 +711,7 @@ function readWalletHeaders(request: Request): WalletAuthInput {
   return {
     address: request.headers.get("x-langclaw-wallet-address") || undefined,
     message: request.headers.get("x-langclaw-wallet-message") || undefined,
+    sessionToken: request.headers.get("x-langclaw-wallet-session") || undefined,
     signature: request.headers.get("x-langclaw-wallet-signature") || undefined,
   };
 }

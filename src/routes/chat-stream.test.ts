@@ -6,6 +6,10 @@ import {
   buildChatWorkflowOptions,
   handleChatStream,
 } from "./chat-stream";
+import {
+  createWalletChallenge,
+  verifyWalletSession,
+} from "../lib/server/wallet-auth";
 import { jsonResponse, mockFetch, readNdjson, withEnv } from "../test/helpers";
 
 const testPrivateKey =
@@ -18,13 +22,26 @@ const authEnv = {
 
 async function buildTestWallet() {
   const account = privateKeyToAccount(testPrivateKey);
-  const message = `Login to Langclaw\nAddress: ${account.address}\nTime: ${new Date().toISOString()}`;
-  const signature = await account.signMessage({ message });
+  const challenge = createWalletChallenge({
+    address: account.address,
+    request: new Request("http://localhost/api/wallet/challenge"),
+  });
+  const signature = await account.signMessage({ message: challenge.message });
+  const verified = await verifyWalletSession(
+    {
+      address: account.address,
+      message: challenge.message,
+      signature,
+    },
+    { requiredPurpose: "session" }
+  );
+
+  assert.ok(verified?.sessionToken);
 
   return {
-    address: account.address,
-    message,
-    signature,
+    address: verified.address,
+    sessionExpiresAt: verified.sessionExpiresAt,
+    sessionToken: verified.sessionToken,
   };
 }
 

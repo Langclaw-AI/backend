@@ -32,7 +32,16 @@ export async function handleApiKeys(request: Request) {
   let account;
 
   try {
-    account = await requireWalletAccount(body.wallet ?? {});
+    account = await requireWalletAccount(
+      body.wallet ?? {},
+      body.action === "create"
+        ? {
+            issueSession: false,
+            requireChallenge: true,
+            requiredPurpose: "api-key:create",
+          }
+        : {}
+    );
   } catch (error) {
     return accountAuthErrorResponse(error, { configured: true });
   }

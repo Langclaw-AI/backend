@@ -43,6 +43,18 @@ type AutomationBody = {
   wallet?: WalletAuthInput;
 };
 
+const AUTOMATION_WEBHOOK_BODY_LIMIT_BYTES = 64 * 1024;
+const WEBHOOK_CLIENT_RATE_LIMIT = 120;
+const WEBHOOK_SLUG_RATE_LIMIT = 30;
+const WEBHOOK_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const webhookRateLimits = new Map<
+  string,
+  {
+    count: number;
+    resetAt: number;
+  }
+>();
+
 export async function handleAutomationTasks(request: Request) {
   const body = await readAutomationBody(request);
 
@@ -278,6 +290,12 @@ export async function handleAutomationNotifications(request: Request) {
 }
 
 export async function handleAutomationWebhook(request: Request, slug: string) {
+  const rateLimitResponse = checkAutomationWebhookRateLimit(request, slug);
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const payload = await readOptionalJsonBody(request);
 
   if ("response" in payload) {
@@ -334,7 +352,33 @@ async function readAutomationBody(
 async function readOptionalJsonBody(
   request: Request
 ): Promise<{ value: unknown } | { response: Response }> {
+  const contentLength = Number(request.headers.get("content-length") || "0");
+
+  if (
+    Number.isFinite(contentLength) &&
+    contentLength > AUTOMATION_WEBHOOK_BODY_LIMIT_BYTES
+  ) {
+    return {
+      response: Response.json(
+        { error: "Automation webhook payload is too large." },
+        { status: 413 }
+      ),
+    };
+  }
+
   const text = await request.text();
+
+  if (
+    new TextEncoder().encode(text).byteLength >
+    AUTOMATION_WEBHOOK_BODY_LIMIT_BYTES
+  ) {
+    return {
+      response: Response.json(
+        { error: "Automation webhook payload is too large." },
+        { status: 413 }
+      ),
+    };
+  }
 
   if (!text.trim()) {
     return { value: undefined };
@@ -350,6 +394,59 @@ async function readOptionalJsonBody(
       ),
     };
   }
+}
+
+function checkAutomationWebhookRateLimit(request: Request, slug: string) {
+  const clientId = readWebhookClientId(request);
+  const clientLimit = incrementWebhookRateLimit(
+    `client:${clientId}`,
+    WEBHOOK_CLIENT_RATE_LIMIT
+  );
+
+  if (clientLimit) {
+    return clientLimit;
+  }
+
+  return incrementWebhookRateLimit(
+    `client-slug:${clientId}:${slug.toLowerCase()}`,
+    WEBHOOK_SLUG_RATE_LIMIT
+  );
+}
+
+function incrementWebhookRateLimit(key: string, limit: number) {
+  const now = Date.now();
+  const current = webhookRateLimits.get(key);
+  const bucket =
+    current && current.resetAt > now
+      ? current
+      : { count: 0, resetAt: now + WEBHOOK_RATE_LIMIT_WINDOW_MS };
+
+  bucket.count += 1;
+  webhookRateLimits.set(key, bucket);
+
+  if (bucket.count <= limit) {
+    return null;
+  }
+
+  const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+
+  return Response.json(
+    { error: "Too many automation webhook requests." },
+    {
+      headers: {
+        "Retry-After": String(retryAfter),
+      },
+      status: 429,
+    }
+  );
+}
+
+function readWebhookClientId(request: Request) {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip")?.trim() ||
+    "unknown"
+  );
 }
 
 function readTriggeredBy(value: unknown): AutomationTriggeredBy {

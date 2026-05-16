@@ -14,9 +14,15 @@ import {
   verifyWalletSession,
   type VerifiedWallet,
   type WalletAuthInput,
+  type WalletAuthPurpose,
 } from "./wallet-auth";
 
 type Supabase = SupabaseClient<Database>;
+type WalletAccountOptions = {
+  issueSession?: boolean;
+  requireChallenge?: boolean;
+  requiredPurpose?: WalletAuthPurpose;
+};
 
 export type WalletUserContext = {
   id: string;
@@ -85,9 +91,10 @@ export async function requireAccountAuth(
 }
 
 export async function requireWalletAccount(
-  walletInput: WalletAuthInput
+  walletInput: WalletAuthInput,
+  options: WalletAccountOptions = {}
 ): Promise<AuthenticatedAccount> {
-  const wallet = await verifyWalletSession(walletInput);
+  const wallet = await verifyWalletSession(walletInput, options);
 
   if (!wallet) {
     throw new AccountAuthError(401, "Wallet signature is required.");
@@ -142,7 +149,12 @@ export function accountAuthErrorResponse(
 }
 
 function hasWalletAuthInput(wallet?: WalletAuthInput) {
-  return Boolean(wallet?.address || wallet?.message || wallet?.signature);
+  return Boolean(
+    wallet?.address ||
+      wallet?.message ||
+      wallet?.sessionToken ||
+      wallet?.signature
+  );
 }
 
 function hasApiKeyInput(request?: Request) {
@@ -157,15 +169,7 @@ async function upsertWalletUser(
 ): Promise<WalletUserContext> {
   const { data, error } = await supabase
     .from("langclaw_wallet_users")
-    .upsert(
-      {
-        last_login_message: wallet.message,
-        last_seen_at: new Date().toISOString(),
-        last_signature: wallet.signature,
-        wallet_address: wallet.address,
-      },
-      { onConflict: "wallet_address" }
-    )
+    .upsert(buildWalletUserUpsert(wallet), { onConflict: "wallet_address" })
     .select("id,wallet_address")
     .single();
 
@@ -180,6 +184,25 @@ async function upsertWalletUser(
     id: data.id,
     walletAddress: data.wallet_address,
   };
+}
+
+function buildWalletUserUpsert(wallet: VerifiedWallet) {
+  const payload: {
+    last_login_message?: string;
+    last_seen_at: string;
+    last_signature?: string;
+    wallet_address: string;
+  } = {
+    last_seen_at: new Date().toISOString(),
+    wallet_address: wallet.address,
+  };
+
+  if (wallet.message && wallet.signature) {
+    payload.last_login_message = wallet.message;
+    payload.last_signature = wallet.signature;
+  }
+
+  return payload;
 }
 
 function mapApiKeyError(error: unknown) {

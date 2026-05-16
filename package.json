@@ -25,5 +25,9 @@
     "solc": "^0.8.35",
     "tsx": "latest",
     "typescript": "latest"
+  },
+  "overrides": {
+    "axios": "^1.16.1",
+    "tmp": "^0.2.5"
   }
 }

@@ -13,6 +13,10 @@ import { handleChatStream } from "./routes/chat-stream";
 import { handleDiscover } from "./routes/discover";
 import { handleDiscoverStream } from "./routes/discover-stream";
 import { handleApiKeys } from "./routes/api-keys";
+import {
+  handleWalletChallenge,
+  handleWalletSession,
+} from "./routes/wallet-auth";
 import { handleMemory, handleMemorySettings } from "./routes/memory";
 import {
   handleAutomationRuns,
@@ -45,6 +49,8 @@ type RouteHandler = (request: Request) => Promise<Response> | Response;
 
 const routes = new Map<string, RouteHandler>([
   ["POST /api/api-keys", handleApiKeys],
+  ["POST /api/wallet/challenge", handleWalletChallenge],
+  ["POST /api/wallet/session", handleWalletSession],
   ["POST /api/automation/runs", handleAutomationRuns],
   ["POST /api/automation/settings", handleAutomationSettings],
   ["POST /api/automation/tasks", handleAutomationTasks],
@@ -94,7 +100,7 @@ async function handleRequest(
 ) {
   try {
     const url = getRequestUrl(request);
-    setCorsHeaders(response);
+    setCorsHeaders(request, response);
 
     if (request.method === "OPTIONS") {
       response.writeHead(204);
@@ -154,7 +160,7 @@ async function handleRequest(
       return;
     }
 
-    setCorsHeaders(response);
+    setCorsHeaders(request, response);
     await writeWebResponse(
       response,
       Response.json(
@@ -207,7 +213,6 @@ async function writeWebResponse(
   webResponse.headers.forEach((value, name) => {
     response.setHeader(name, value);
   });
-  setCorsHeaders(response);
 
   if (!webResponse.body) {
     response.end();
@@ -249,11 +254,15 @@ function getRequestUrl(request: IncomingMessage) {
   return new URL(request.url || "/", `${protocol}://${hostHeader}`);
 }
 
-function setCorsHeaders(response: ServerResponse) {
-  response.setHeader(
-    "Access-Control-Allow-Origin",
-    process.env.CORS_ORIGIN || "*",
-  );
+function setCorsHeaders(request: IncomingMessage, response: ServerResponse) {
+  const origin = readHeader(request.headers.origin);
+  const allowedOrigin = resolveCorsOrigin(origin);
+
+  if (allowedOrigin) {
+    response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    response.setHeader("Vary", "Origin");
+  }
+
   response.setHeader(
     "Access-Control-Allow-Headers",
     [
@@ -262,10 +271,54 @@ function setCorsHeaders(response: ServerResponse) {
       "X-Langclaw-Admin-Key",
       "X-Langclaw-Wallet-Address",
       "X-Langclaw-Wallet-Message",
+      "X-Langclaw-Wallet-Session",
       "X-Langclaw-Wallet-Signature",
     ].join(", "),
   );
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+}
+
+function resolveCorsOrigin(origin?: string) {
+  const configured = (process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (configured.includes("*")) {
+    return "*";
+  }
+
+  if (origin && configured.includes(origin)) {
+    return origin;
+  }
+
+  if (
+    origin &&
+    configured.length === 0 &&
+    process.env.NODE_ENV !== "production" &&
+    isLocalDevelopmentOrigin(origin)
+  ) {
+    return origin;
+  }
+
+  return "";
+}
+
+function isLocalDevelopmentOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+
+    return (
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
+      (url.port === "3000" || url.port === "3001")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function readHeader(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function readPort(value: string | undefined, fallback: number) {
