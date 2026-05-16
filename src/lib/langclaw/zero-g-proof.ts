@@ -59,6 +59,8 @@ const defaultStorageIndexer = "https://indexer-storage-turbo.0g.ai";
 const defaultChainExplorer = "https://chainscan.0g.ai";
 const defaultStorageExplorer = "https://storagescan.0g.ai";
 const defaultChainId = 16661;
+const defaultReceiptPollAttempts = 12;
+const defaultReceiptPollIntervalMs = 5000;
 
 const signalGraphRegistryAbi = [
   {
@@ -270,6 +272,10 @@ async function anchorBrief({
     };
   }
 
+  const address = getAddress(registryAddress) as Address;
+  let submittedTxHash: Hex | undefined;
+  let submittedExplorerUrl: string | undefined;
+
   try {
     const account = privateKeyToAccount(privateKey);
     const chain = defineChain({
@@ -295,7 +301,6 @@ async function anchorBrief({
       chain,
       transport: http(rpcUrl),
     });
-    const address = getAddress(registryAddress) as Address;
     const { request } = await publicClient.simulateContract({
       address,
       abi: signalGraphRegistryAbi,
@@ -304,9 +309,24 @@ async function anchorBrief({
       account,
     });
     const txHash = await walletClient.writeContract(request);
-    const receipt = await publicClient.waitForTransactionReceipt({
-      hash: txHash,
+    const explorerUrl = `${explorerBase}/tx/${txHash}`;
+    submittedTxHash = txHash;
+    submittedExplorerUrl = explorerUrl;
+    const receipt = await waitForSubmittedTransactionReceipt({
+      publicClient,
+      txHash,
     });
+
+    if (!receipt) {
+      return {
+        status: "pending",
+        briefHash,
+        txHash,
+        explorerUrl,
+        registryAddress: address,
+        chainId,
+      };
+    }
 
     if (receipt.status !== "success") {
       throw new Error(`0G Chain transaction ${txHash} reverted.`);
@@ -316,7 +336,7 @@ async function anchorBrief({
       status: "anchored",
       briefHash,
       txHash,
-      explorerUrl: `${explorerBase}/tx/${txHash}`,
+      explorerUrl,
       registryAddress: address,
       chainId,
     };
@@ -324,11 +344,57 @@ async function anchorBrief({
     return {
       status: "failed",
       briefHash,
+      txHash: submittedTxHash,
+      explorerUrl: submittedExplorerUrl,
       chainId,
-      registryAddress,
+      registryAddress: address,
       error: sanitizeError(error instanceof Error ? error.message : String(error)),
     };
   }
+}
+
+type ReceiptPollingClient = {
+  getTransactionReceipt: (args: {
+    hash: Hex;
+  }) => Promise<{ status: "success" | "reverted" } | null | undefined>;
+};
+
+export async function waitForSubmittedTransactionReceipt({
+  publicClient,
+  txHash,
+  attempts = readPositiveInt(
+    process.env.OG_CHAIN_RECEIPT_POLL_ATTEMPTS,
+    defaultReceiptPollAttempts
+  ),
+  intervalMs = readPositiveInt(
+    process.env.OG_CHAIN_RECEIPT_POLL_INTERVAL_MS,
+    defaultReceiptPollIntervalMs
+  ),
+}: {
+  publicClient: ReceiptPollingClient;
+  txHash: Hex;
+  attempts?: number;
+  intervalMs?: number;
+}) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+
+      if (receipt) {
+        return receipt;
+      }
+    } catch (error) {
+      if (!isTransactionReceiptMissingError(error)) {
+        throw error;
+      }
+    }
+
+    if (attempt < attempts) {
+      await sleep(intervalMs);
+    }
+  }
+
+  return undefined;
 }
 
 function normalizeStorageUpload(uploadResult: StorageUploadResult) {
@@ -363,6 +429,25 @@ function readChainId() {
   const parsed = Number.parseInt(process.env.OG_CHAIN_ID || "", 10);
 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultChainId;
+}
+
+function readPositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isTransactionReceiptMissingError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return (
+    message.includes("Transaction receipt with hash") &&
+    message.includes("could not be found")
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function safeFilePart(value: string) {

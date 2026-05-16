@@ -745,7 +745,10 @@ function traceFromChainProof(chain: ZeroGChainProof): Partial<OrchestrationStep>
   return {
     status: chain.status === "failed" ? "failed" : "complete",
     summary: summarizeChainProof(chain),
-    execution: chain.status === "anchored" || chain.status === "failed"
+    execution:
+      chain.status === "anchored" ||
+      chain.status === "pending" ||
+      chain.status === "failed"
       ? "0g-chain"
       : "deterministic-fallback",
     error: chain.error,
@@ -763,7 +766,10 @@ function proofMetaFromStorage(storage: ZeroGStorageProof) {
 
 function proofMetaFromChain(chain: ZeroGChainProof) {
   return {
-    execution: chain.status === "anchored" || chain.status === "failed"
+    execution:
+      chain.status === "anchored" ||
+      chain.status === "pending" ||
+      chain.status === "failed"
       ? ("0g-chain" as const)
       : ("deterministic-fallback" as const),
     error: chain.error,
@@ -791,6 +797,10 @@ function summarizeStorageProof(storage: ZeroGStorageProof) {
 function summarizeChainProof(chain: ZeroGChainProof) {
   if (chain.status === "anchored") {
     return `Brief hash anchored on 0G Chain through LangclawRegistry. Transaction: ${chain.txHash}.`;
+  }
+
+  if (chain.status === "pending") {
+    return `Brief hash transaction submitted to 0G Chain and is waiting for confirmation. Transaction: ${chain.txHash}.`;
   }
 
   if (chain.status === "failed") {

@@ -180,7 +180,12 @@ export type DiscoverPayload = {
 
 export type ZeroGStorageStatus = "prepared" | "uploaded" | "skipped" | "failed";
 
-export type ZeroGChainStatus = "prepared" | "anchored" | "skipped" | "failed";
+export type ZeroGChainStatus =
+  | "prepared"
+  | "pending"
+  | "anchored"
+  | "skipped"
+  | "failed";
 
 export type ZeroGComputeStatus = "used" | "skipped" | "failed";
 
