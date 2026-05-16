@@ -2,7 +2,7 @@
 
 Node.js HTTP API (`signalgraph-backend`) for Langclaw and **SignalGraph**: agent workflows, 0G integrations, Supabase persistence, usage billing, and OpenAI-compatible 0G Compute proxy.
 
-**Platform overview:** [../README.md](../README.md)
+**Organization:** [Langclaw-AI](https://github.com/Langclaw-AI) · **Frontend:** [Langclaw-AI/frontend](https://github.com/Langclaw-AI/frontend) · **Contracts:** [Langclaw-AI/contracts](https://github.com/Langclaw-AI/contracts)
 
 ## Responsibilities
 
@@ -100,7 +100,7 @@ SignalGraph providers: `BRAVE_SEARCH_API_KEY`, `GITHUB_TOKEN`, `TAVILY_API_KEY`,
 
 0G proof: `OG_STORAGE_*`, `OG_CHAIN_*`, `SIGNALGRAPH_REGISTRY_ADDRESS`
 
-Billing: `LANGCLAW_USAGE_VAULT_ADDRESS` — deploy from [`../contracts`](../contracts/README.md)
+Billing: `LANGCLAW_USAGE_VAULT_ADDRESS` — deploy from [Langclaw-AI/contracts](https://github.com/Langclaw-AI/contracts)
 
 ## Supabase
 
@@ -110,7 +110,7 @@ Apply migrations under [`supabase/migrations/`](supabase/migrations/). Clients n
 
 | Contract | Deploy | Env |
 | -------- | ------ | --- |
-| `LangclawUsageVault` | Foundry in [`../contracts`](../contracts/README.md) | `LANGCLAW_USAGE_VAULT_ADDRESS` |
+| `LangclawUsageVault` | [Langclaw-AI/contracts](https://github.com/Langclaw-AI/contracts) | `LANGCLAW_USAGE_VAULT_ADDRESS` |
 | `SignalGraphRegistry` | `npm run deploy:registry` | `SIGNALGRAPH_REGISTRY_ADDRESS` |
 
 Registry source: [`contracts/SignalGraphRegistry.sol`](contracts/SignalGraphRegistry.sol)
